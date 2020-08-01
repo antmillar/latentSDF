@@ -1,0 +1,36 @@
+{% extends "base.html" %}
+
+{% block content %}
+<script type="text/paperscript" src="static/javascript/js/paperPath.js" canvas="paperCanvas"></script>
+<!-- <script type="text/javascript" src="static/javascript/js/draw.js"></script> -->
+
+
+
+
+<body>
+  <!-- <form id = "myForm" action="{{ url_for('main')}}" method="POST" enctype="multipart/form-data"> -->
+
+      <!-- <input type="hidden" id = 'url' name="url" value=""> -->
+      <!-- <input type="submit" id = 'predict' value="Predict" onclick="return save();"> -->
+  <!-- </form> -->
+  <div class="mx-auto text-center">
+    <br>
+    <h2 >Latent Space Designer </h2>
+    <canvas id="paperCanvas"  width="800" height="800" style="border:2px solid #000000;"></canvas>
+    <!-- <image src = "/static/img/latent.png" width = "600", height = "600"></image> -->
+
+<!-- this passes filenames to the model -->
+<form action="" method="POST" id = "btnModel">
+    <!-- <input id = "fileNameInput" name = "fileNameInput"> -->
+    <input type="submit" name="generate" value="Generate Design" />
+</form>
+
+
+      
+  </div>
+
+
+  </body>
+
+
+{% endblock %}
