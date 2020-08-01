@@ -26,7 +26,7 @@ def save(scene_data : np.array):
     np.save(dir_data + "/numpy" , scene_data)
 
 #load a point cloud and pass through the model
-def evaluate():
+def evaluate(sliceVectors):
 
     # print("reading input PLY file...")
     # print(input_path + "/" +  fn)
@@ -64,10 +64,10 @@ def evaluate():
     # save_to_PLY(fn, pred)
 
 
-    numSlices = 100
+    numSlices = 50
     res = 200
 
-    generateModel(model, numSlices, res)
+    generateModel(sliceVectors, model, numSlices, res)
     
 
 def latent_to_image(model, latent):
@@ -197,7 +197,7 @@ def save_to_PLY(fn : str, pred):
 
 
 
-def generateModel(model, numSlices, res):
+def generateModel(sliceVectors, model, numSlices, res):
 
     latentStart = torch.tensor( [1, 0.5]).to(device)
     latentEnd = torch.tensor( [2, 0]).to(device)
@@ -219,9 +219,8 @@ def generateModel(model, numSlices, res):
     latentStep = latentRange.div(numSlices)
     slices = []
 
-    for i in range(numSlices):
-
-        pixels = createSlice(pts, latentStart + i * latentStep)
+    for vector in sliceVectors:
+        pixels = createSlice(pts, torch.tensor(vector))
         slices.append(pixels.detach().cpu())
 
     stacked = np.stack(slices)

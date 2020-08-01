@@ -2,7 +2,7 @@
 
 {% block content %}
 <script type="text/paperscript" src="static/javascript/js/paperPath.js" canvas="paperCanvas"></script>
-<!-- <script type="text/javascript" src="static/javascript/js/draw.js"></script> -->
+<script type="text/javascript" src="static/javascript/js/latent.js"></script>
 
 
 
@@ -20,9 +20,11 @@
     <!-- <image src = "/static/img/latent.png" width = "600", height = "600"></image> -->
 
 <!-- this passes filenames to the model -->
-<form action="" method="POST" id = "btnModel">
+<form action="" method="POST" id = "btnGenerate">
     <!-- <input id = "fileNameInput" name = "fileNameInput"> -->
-    <input type="submit" name="generate" value="Generate Design" />
+    <input type="submit" id = "generateSlices" name = "generateSlices" value = "generate">
+    <input type="hidden" id = "slices" name = "slices">
+    <!-- <input name="generate" value="Generate Design" /> -->
 </form>
 
 

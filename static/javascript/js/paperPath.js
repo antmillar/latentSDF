@@ -3,6 +3,16 @@ var path = new Path();
 var nodes = [];
 var history = [];
 var texts = [];
+
+// JavaScript Interop
+
+
+// function internalClicked() {
+//     var slices = extractSlices(100);
+//     console.log(slices);
+// }
+
+
 width = 600
 
 path.strokeColor =  new Color(1,0.0, 0.0, 0.5);
@@ -48,6 +58,8 @@ raster.onMouseLeave = function(event) {
 
 function extractSlices(sliceCount){
 
+    //check if there are actually any nodes!
+
     slices = [];
 
     var offsetStep = path.length / sliceCount;
@@ -67,7 +79,8 @@ function onKeyDown(event) {
     if(event.key == 's')
     {
         var s = extractSlices(100);
-        console.log(s);
+        globals.slices = extractSlices(100);
+        console.log(globals.slices)
     }
 }
 
@@ -85,12 +98,11 @@ function onMouseDown(event) {
 
 
         var hist = new PointText(new Point(10, 200 + history.length * 20));
-        console.log(history.length)
         hist.fontSize = 10;
         hist.fontFamily = "sans-serif";
         hist.fillColor = 'black';
-        console.log(event.point / width)
-        var coords = event.point / width;
+        var p = event.point - new Point(margin, margin);
+        var coords = p / width;
         hist.content = history.length + " : [ " + coords.x.toFixed(2) + " , " + coords.y.toFixed(2) + " ]"
         history.push(hist);
 
@@ -119,24 +131,4 @@ function onMouseDown(event) {
 
     }
 
-    // if(event.key == 'up')
-    // {
-    //     R += 0.01;
-    //     text.content = 'R = ' + R.toPrecision(3);
-    //     path.removeSegments();
-    //     cobwebPath.removeSegments();
-    //     identityPath.removeSegments();
-    //     chaosPath.removeSegments();
-
-    //     GraphLogisticMap(R);
-    // }
-    // if(event.key == 'down')
-    // {
-    //     path.add(MouseEven)
-    //     R -= 0.01;
-    //     text.content = 'R = ' + R.toPrecision(3);
-    //     path.removeSegments();
-
-    //     GraphLogisticMap(R);
-    // }
 }

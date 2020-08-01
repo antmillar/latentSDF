@@ -7,6 +7,7 @@ import json
 import random
 import threading
 import time
+import numpy as np
 
 # #local module imports
 import python_modules.deepsdf.eval as eval
@@ -42,8 +43,16 @@ def main():
 
     if request.method == "POST":
 
-        torch.cuda.empty_cache()
-        eval.evaluate()
+        if(request.form.get("generateSlices")):
+
+            sliceVectors = request.form.get("slices")
+            sliceVectors = sliceVectors.split(",")
+            coords = np.zeros((len(sliceVectors)//2, 2))
+            coords[:,0] = sliceVectors[::2]
+            coords[:,1] = sliceVectors[1::2]
+
+            torch.cuda.empty_cache()
+            eval.evaluate(coords)
 
     return render_template('main.html')
 
