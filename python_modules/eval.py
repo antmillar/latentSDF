@@ -9,6 +9,7 @@ from torch.utils.data import DataLoader
 from python_modules.pointnet import pointnet2_semseg as pointnet2_semseg
 from python_modules.preprocess.dataset import ScannetDatasetWholeScene, collate_wholescene
 from pathlib import Path
+import matplotlib.pyplot as plt
 import numpy
 
 #static
@@ -124,6 +125,56 @@ def forward(model, coords, feats):
     outputs = pred.max(2)[1]
 
     return outputs
+
+def grid_extremes(latentList):
+    """Calculates the corners that create a latent space that covers all latent vectors
+
+    Args:
+        latentList: list of latent vectors
+
+    Returns:
+        corners: two corners of the grid that covers all latents
+    """
+    
+def interpolate_grid(model, latentStart, latentEnd, num = 10):
+    """Generates an image of the latent space containing seed and interpolated designs
+
+    Args:
+        model: pytorch deepsdf model
+        corners: the diagonal corners of the latent space
+        num: length of side of the grid
+    """
+
+  fig, axs = plt.subplots(num, num, figsize=(16, 16))
+  fig.tight_layout(pad=2.0)
+
+  #axes
+  x = np.linspace(latentStart[0], latentEnd[0], num)
+  y = np.linspace(latentStart[1], latentEnd[1], num)
+
+  for index, i in enumerate(x):
+    for jindex, j in enumerate(y):
+    
+      latent = torch.tensor( [float(i),  float(j)]).to(device)
+
+      #invert colors
+      im = 1 - latent_to_image(model, latent)
+
+      #format the seed latent vectors differently
+      if([i, j] in [[0.0,0.0], [0.0, 1.0], [1.0, 0.0], [1.0, 1.0]]):
+
+        axs[jindex, index].imshow(im, cmap = "copper")
+      else:
+
+        axs[jindex, index].imshow(im, cmap = "gray")
+      
+      #formatting
+      axs[jindex, index].axis("off")
+      # axs[jindex, index].set_title(np.round(latent.cpu().detach().numpy(), 2), fontsize= 8)
+      fig.savefig(os.path.join(dir_output, 'latent_grid.png'))
+
+interpolate_grid(sdfCodeNet, np.array([0.0, 0.0]), np.array([1.0, 1.0]))
+
 
 #remove points duplicated in the dataset random sampling
 def filter_points(coords, pred):

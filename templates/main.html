@@ -2,23 +2,62 @@
 
 {% block content %}
 <script type="text/paperscript" src="static/javascript/js/paperPath.js" canvas="paperCanvas"></script>
-<script type="text/javascript" src="static/javascript/js/latent.js"></script>
+<script type="text/javascript" src="static/javascript/js/latent.js" defer></script>
 
 
-
+<script type="text/javascript">  
+  var latentBounds = {{ latentBounds|tojson }};  
+  console.log(latentBounds);
+</script>
 
 <body>
-  <!-- <form id = "myForm" action="{{ url_for('main')}}" method="POST" enctype="multipart/form-data"> -->
+  <div style="height: 50px; margin-top: 20px">
+    <h2 class = "text-center">Latent Space Designer </h2>
+  </div>
 
-      <!-- <input type="hidden" id = 'url' name="url" value=""> -->
-      <!-- <input type="submit" id = 'predict' value="Predict" onclick="return save();"> -->
-  <!-- </form> -->
+  <div class="row ">
+  <div class="col-md-3 " style="margin-top: 300px">
+    <form id = "myForm" action="" method="POST" style="width: 80%; margin:auto" class= "text-center">
+      <div class="form-row">
+        <div class="col">
+          <label for="xMin">xMin:</label>
+          <input type="text" class="form-control text-center" id="xMin" name="xMin">
+        </div>
+        <div class="col">
+          <label for="xMax">xMax:</label>
+          <input type="text" class="form-control text-center" id="xMax" name="xMax">
+        </div>
+      </div>
+
+      <div class="form-row" style="margin-top: 10px">
+        <div class="col">
+          <label for="yMin">yMin:</label>
+          <input type="text" class="form-control text-center" id="yMin" name="yMin">
+        </div>
+        <div class="col">
+          <label for="yMax">yMax:</label>
+          <input type="text" class="form-control text-center" id="yMax" name="yMax">
+        </div>
+  
+      </div>
+
+      <div class="form-row" style="margin-top: 30px"> 
+        <div class="col">
+          <input type="submit" id = "updateLatent" name = "updateLatent" value = "update latent space">
+        </div>
+      </div>
+    </form>
+  </div>
+    
+  <div class="col-md-6">
+   <!-- <input type="submit" id = 'predict' value="Predict" onclick="return save();"> -->
   <div class="mx-auto text-center">
     <br>
-    <h2 >Latent Space Designer </h2>
     <canvas id="paperCanvas"  width="800" height="800" style="border:2px solid #000000;"></canvas>
     <!-- <image src = "/static/img/latent.png" width = "600", height = "600"></image> -->
 
+  </div>
+</div>
 <!-- this passes filenames to the model -->
 <form action="" method="POST" id = "btnGenerate">
     <!-- <input id = "fileNameInput" name = "fileNameInput"> -->
@@ -28,7 +67,7 @@
 </form>
 
 
-      
+
   </div>
 
 

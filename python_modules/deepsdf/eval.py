@@ -11,16 +11,23 @@ from pathlib import Path
 import numpy
 from PIL import Image
 import mcubes
+import matplotlib.pyplot as plt
+import time
 
 #static
 cwd = os.getcwd()
+dir_image = cwd + '/static/img'
 dir_model = cwd + '/torchModels'
 dir_data = cwd + '/static/models'
 dir_output = cwd + '/static/models/outputs'
 batch_size = 1
 device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
-
+size = 100
+ptsSample = np.float_([[x, y] 
+                for y in  np.linspace(-50, 50, size) 
+                for x in np.linspace(-50, 50, size)])
+                    
 #save the numpy data locally
 def save(scene_data : np.array):
     np.save(dir_data + "/numpy" , scene_data)
@@ -39,13 +46,14 @@ def evaluate(sliceVectors):
     # dataset = ScannetDatasetWholeScene(scene_data, density)
     # dataloader = DataLoader(dataset, batch_size= batch_size, collate_fn=collate_wholescene)
 
+ 
     print("loading model...")
     model_path = os.path.join(dir_model, "floors4.pth")
 
     model = deepSDFCodedShape()#.cuda()
     model.load_state_dict(torch.load(model_path, map_location=device))
     # res = 50
-    latent = torch.tensor( [1, 0]).to(device)
+    # latent = torch.tensor( [1, 0]).to(device)
 
     # ptsSample = np.float_([[x, y] 
     #                   for y in  np.linspace(-50, 50, res) 
@@ -55,7 +63,7 @@ def evaluate(sliceVectors):
 
 
     # outputs = model.forward(latent, pts)
-    im = latent_to_image(model, latent)
+    # im = latent_to_image(model, latent)
 
     # print("labelling points...")
     # pred = predict_label(model, dataloader)
@@ -63,35 +71,108 @@ def evaluate(sliceVectors):
     # print("saving PLY file...")
     # save_to_PLY(fn, pred)
 
+    # generateModel(sliceVectors, model, numSlices, res)
 
-    numSlices = 50
-    res = 200
 
-    generateModel(sliceVectors, model, numSlices, res)
+
+    print("complete")
+
+def updateLatent(latentBounds):
+
+    corners = np.array([latentBounds[0], latentBounds[1]]), np.array([latentBounds[2], latentBounds[3]])
+    #should have model globaL?
+    print("loading model...")
+    model_path = os.path.join(dir_model, "floors4.pth")
+
+    model = deepSDFCodedShape()#.cuda()
+    model.load_state_dict(torch.load(model_path, map_location=device))
+
+    interpolate_grid(model, corners)
+
+
+
+def funcTimer(func):
+
+    def timedFunc(*args):
+
+        t0 = time.perf_counter()
+        result = func(*args)
+        elapsed = time.perf_counter() - t0
+        print(f"{func.__name__} : Time Taken - {np.round(elapsed, 2)} secs")
+
+        return result
+
+    return timedFunc
+
+def latent_to_image(model, latent, invert = False):
+
+    coord = torch.Tensor(ptsSample).to(device)
+    out = model.forward(latent.to(device), coord)
+    pixels = out.view(size, size)
+
+    if(invert):
+        mask = pixels < 0
+    else:
+        mask = pixels > 0
+    vals = mask.type(torch.uint8) 
+    vals = vals.cpu().detach().numpy()
+
+    # im = Image.fromarray(vals * 255.0).convert("RGB")
+    # im.save(os.path.join(dir_output, "test.png"))
+
+    return vals
+
+
+def grid_extremes(latentList):
+    """Calculates the corners that create a latent space that covers all latent vectors
+
+    Args:
+        latentList: list of latent vectors
+
+    Returns:
+        corners: two corners of the grid that covers all latents
+    """
     
+@funcTimer
+def interpolate_grid(model, corners, num = 10):
+    """Generates an image of the latent space containing seed and interpolated designs
 
-def latent_to_image(model, latent):
+    Args:
+        model: pytorch deepsdf model
+        corners: the diagonal corners of the latent space
+        num: length of side of the grid
+    """
+
+    print("generating latent grid...")
+    fig, axs = plt.subplots(num, num, figsize=(16, 16))
+    fig.tight_layout()
+
+    #axes
+    x = np.linspace(corners[0][0], corners[0][1], num)
+    y = np.linspace(corners[1][1], corners[1][0], num) #bottom left is lowest y
+
+    for index, i in enumerate(x):
+        for jindex, j in enumerate(y) :
+        
+            latent = torch.tensor( [float(i),  float(j)]).to(device)
+            # plot_sdf_from_latent( latent, model.forward, show_axis = False, ax =  axs[index,jindex])
+
+            im = latent_to_image(model, latent)
+
+            if([i, j] in [[0.0,0.0], [0.0, 1.0], [1.0, 0.0], [1.0, 1.0]]):
+
+                axs[jindex, index].imshow(im, cmap = "copper")
+            else:
+
+                axs[jindex, index].imshow(im, cmap = "gray")
+        
+            axs[jindex, index].axis("off")
+
+        # axs[jindex, index].set_title(np.round(latent.cpu().detach().numpy(), 2), fontsize= 8)
+
+    fig.savefig(os.path.join(dir_image, 'latent_grid.png'))
 
 
-  size = 100
-  ptsSample = np.float_([[x, y] 
-                      for y in  np.linspace(-50, 50, size) 
-                      for x in np.linspace(-50, 50, size)])
-
-  coord = torch.Tensor(ptsSample).to(device)
-  out = model.forward(latent.to(device), coord)
-  pixels = out.view(size, size)
-
-  mask = pixels < 0
-  vals = mask.type(torch.uint8) 
-  vals = vals.cpu().detach().numpy()
-
-  im = Image.fromarray(vals * 255.0).convert("RGB")
-  im.save(os.path.join(dir_output, "test.png"))
-
-  return im
-
-  
 def forward(model, coords, feats):
     pred = []
 
@@ -196,8 +277,10 @@ def save_to_PLY(fn : str, pred):
 
 
 
-
+@funcTimer
 def generateModel(sliceVectors, model, numSlices, res):
+
+    print("generating 3d model...")
 
     latentStart = torch.tensor( [1, 0.5]).to(device)
     latentEnd = torch.tensor( [2, 0]).to(device)

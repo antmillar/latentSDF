@@ -12,7 +12,6 @@ var texts = [];
 //     console.log(slices);
 // }
 
-
 width = 600
 
 path.strokeColor =  new Color(1,0.0, 0.0, 0.5);
@@ -20,8 +19,8 @@ path.strokeColor =  new Color(1,0.0, 0.0, 0.5);
 path.strokeWidth = 2;
 
 var raster = new Raster({
-    source: '/static/img/latent.png',
-    position: view.center,
+    source: '/static/img/latent_grid.png',
+    position: view.center
 });
 
 raster.insertBelow(path)
@@ -39,15 +38,56 @@ text.fontSize = 16;
 text.fontFamily = "sans-serif";
 text.fillColor = 'black';
 
+// var annotate = new PointText(new Point(margin/2, 135));
+// annotate.fontSize = 30;
+// annotate.fontFamily = "sans-serif";
+// annotate.fillColor = 'black';
+// annotate.content = parseFloat(globals.latentBounds[3]);
+
+function addAxisLabels(){
+
+    var len = globals.latentBounds.length;
+    var positions = [new PointText(new Point(margin + 30, width + margin + margin /2  )) ,
+                     new PointText(new Point(width + margin - margin/2, width + margin + margin /2  )),
+                     new PointText(new Point(margin/2, margin + width - 25)),
+                     new PointText(new Point(margin/2, margin + margin / 2))]
+
+    for (var i = 0; i < len; i++) {
+        var annotate = positions[i]
+        annotate.fontSize = 30;
+        annotate.fontFamily = "sans-serif";
+        annotate.fillColor = 'black';
+        annotate.content = parseFloat(globals.latentBounds[i]);
+    }
+
+}
+
+addAxisLabels()
 // Set the content of the text item:
 
+function mouseToLatent(point){
 
+    var pos = point - new Point(margin, margin);
+    pos /= width;
+
+    xMin = parseFloat(globals.latentBounds[0]);
+    xMax = parseFloat(globals.latentBounds[1]);
+    yMin = parseFloat(globals.latentBounds[2]);
+    yMax = parseFloat(globals.latentBounds[3]);
+
+    var xVal = xMin + pos.x * (xMax - xMin);
+    var yVal = yMax - pos.y * (yMax - yMin);
+
+    latentPoint = new Point(xVal, yVal);
+
+    return latentPoint
+}
 //annotates cursors position on the latent space
 raster.onMouseMove = function(event) {
 
-    var pos = event.point - new Point(margin, margin);
-    pos /= width;
-    text.content = "[ " + pos.x.toFixed(2) + " , " + pos.y.toFixed(2) + " ]"
+    var latentPoint = mouseToLatent(event.point);
+
+    text.content = "[ " + latentPoint.x.toFixed(2) + " , " + latentPoint.y.toFixed(2) + " ]";
 }
 
 //hides cursors position when not in latent space
@@ -97,12 +137,12 @@ function onMouseDown(event) {
         nodes.push(node);
 
 
-        var hist = new PointText(new Point(10, 200 + history.length * 20));
+        var hist = new PointText(new Point(710, 200 + history.length * 20));
         hist.fontSize = 10;
         hist.fontFamily = "sans-serif";
         hist.fillColor = 'black';
-        var p = event.point - new Point(margin, margin);
-        var coords = p / width;
+
+        var coords = mouseToLatent(event.point)
         hist.content = history.length + " : [ " + coords.x.toFixed(2) + " , " + coords.y.toFixed(2) + " ]"
         history.push(hist);
 

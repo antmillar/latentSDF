@@ -31,6 +31,8 @@ input_path = cwd + '/static/models/inputs'
 output_path = cwd + '/static/models/outputs'
 mesh_path = cwd + '/static/models/meshes'
 
+latentBounds = [0, 1, 0, 1]
+
 #base route
 @app.route('/')
 def index():
@@ -43,6 +45,7 @@ def main():
 
     if request.method == "POST":
 
+        #generate 3d model
         if(request.form.get("generateSlices")):
 
             sliceVectors = request.form.get("slices")
@@ -54,7 +57,18 @@ def main():
             torch.cuda.empty_cache()
             eval.evaluate(coords)
 
-    return render_template('main.html')
+        #update the latent space
+        if(request.form.get("updateLatent")):
+
+            latentBounds[0] = float(request.form.get("xMin"))
+            latentBounds[1] = float(request.form.get("xMax"))
+            latentBounds[2] = float(request.form.get("yMin"))
+            latentBounds[3] = float(request.form.get("yMax"))
+
+            eval.updateLatent(latentBounds)
+
+
+    return render_template('main.html', latentBounds = latentBounds )
 
 # #route to hold the latest status 
 # @app.route('/progress/<int:thread_id>')
@@ -193,4 +207,4 @@ def main():
 
 if __name__ == '__main__':
     # app.run(host="0.0.0.0", port=int(os.environ.get("PORT", 5000))) //use this version of line if running inside docker
-    app.run()
+    app.run(debug=True)
