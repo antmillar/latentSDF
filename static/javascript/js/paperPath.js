@@ -67,8 +67,8 @@ addAxisLabels()
 
 function mouseToLatent(point){
 
-    var pos = point - new Point(margin, margin);
-    pos /= width;
+    var pos = point - new Point(margin, margin)
+    pos = pos / width;
 
     xMin = parseFloat(globals.latentBounds[0]);
     xMax = parseFloat(globals.latentBounds[1]);
@@ -78,6 +78,7 @@ function mouseToLatent(point){
     var xVal = xMin + pos.x * (xMax - xMin);
     var yVal = yMax - pos.y * (yMax - yMin);
 
+    //rescale by 10% due so images are centered on coordinates, 1.1 because 10 images. need to fix this
     latentPoint = new Point(xVal, yVal);
 
     return latentPoint
@@ -99,30 +100,33 @@ raster.onMouseLeave = function(event) {
 function extractSlices(sliceCount){
 
     //check if there are actually any nodes!
-
     slices = [];
 
-    var offsetStep = path.length / sliceCount;
-
-    for(i = 0; i <sliceCount; i++)
+    //deal with edge case of a single point, which is not a valid path yet
+    if(path.length == 0)
     {
-        var point = path.getPointAt(offsetStep * i);
-        var pt = point / width;
-        slices.push([pt.x.toFixed(2), pt.y.toFixed(2)]);
+        for(i = 0; i <sliceCount; i++)
+        {
+            var pt = path.segments[0].point / width;
+            slices.push([pt.x.toFixed(2), pt.y.toFixed(2)]);
+         }
     }
 
+    else
+    {
+        var offsetStep = path.length / sliceCount;
+
+        for(i = 0; i <sliceCount; i++)
+        {
+            var point = path.getPointAt(offsetStep * i);
+            var pt = point / width;
+            slices.push([pt.x.toFixed(2), pt.y.toFixed(2)]);
+        }
+    }
+    // console.log(slices)
     return slices;
 }
 
-function onKeyDown(event) {
-
-    if(event.key == 's')
-    {
-        var s = extractSlices(100);
-        globals.slices = extractSlices(100);
-        console.log(globals.slices)
-    }
-}
 
 function onMouseDown(event) {
 
@@ -156,6 +160,8 @@ function onMouseDown(event) {
 
         path.add(event.point)
         path.smooth() //need to contrain values on path within the range if want to use this.
+
+        globals.slices = extractSlices(100);
     }
     
     //on right click

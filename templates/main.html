@@ -15,9 +15,45 @@
     <h2 class = "text-center">Latent Space Designer </h2>
   </div>
 
-  <div class="row ">
-  <div class="col-md-3 " style="margin-top: 300px">
-    <form id = "myForm" action="" method="POST" style="width: 80%; margin:auto" class= "text-center">
+
+  <div class="row " >
+  <div class="col-md-3 text-center" style=" margin-top: 100px">
+    <h5>Seed Designs</h5>
+    <div class = "row ">    
+      <div class = "col-3" > 
+        <figure class = "text-center">
+         <img src ="static/img/floor1.png"  class="figure-img img-fluid"> 
+         <figcaption  >[0,0]</figcaption>
+        </figure>
+      </div>
+
+      <div class = "col-3"> 
+        <figure >
+          <img src ="static/img/floor2.png"  class="figure-img img-fluid"> 
+          <figcaption >[0,0]</figcaption>
+         </figure>
+      </div>
+
+      <div class = "col-3"> 
+        <figure >
+          <img src ="static/img/floor3.png"  class="figure-img img-fluid"> 
+          <figcaption >[0,0]</figcaption>
+         </figure>
+      </div>
+
+       <div class = "col-3"> 
+        <figure >
+          <img src ="static/img/floor4.png"  class="figure-img img-fluid"> 
+          <figcaption >[0,0]</figcaption>
+         </figure>
+       </div>
+
+   </div>
+
+
+    <form id = "myForm" action="" method="POST" style="width: 80%; margin:auto; margin-top: 100px;" class= "text-center">
+      <h5>Latent Space</h5>
+
       <div class="form-row">
         <div class="col">
           <label for="xMin">xMin:</label>
@@ -43,7 +79,7 @@
 
       <div class="form-row" style="margin-top: 30px"> 
         <div class="col">
-          <input type="submit" id = "updateLatent" name = "updateLatent" value = "update latent space">
+          <input type="submit" class="btn btn-outline-dark"  id = "updateLatent" name = "updateLatent" value = "update latent space">
         </div>
       </div>
     </form>
@@ -53,17 +89,20 @@
    <!-- <input type="submit" id = 'predict' value="Predict" onclick="return save();"> -->
   <div class="mx-auto text-center">
     <br>
-    <canvas id="paperCanvas"  width="800" height="800" style="border:2px solid #000000;"></canvas>
+    <canvas id="paperCanvas"  width="800" height="800" style="border:2px solid #000000 "></canvas>
     <!-- <image src = "/static/img/latent.png" width = "600", height = "600"></image> -->
 
   </div>
 </div>
+
+<div class="col-md-3 " style="margin-top: 400px">
+  <button type="button" class="btn btn-outline-dark" id = "gen" name = "gen">Generate</button>
+
+</div>
 <!-- this passes filenames to the model -->
 <form action="" method="POST" id = "btnGenerate">
-    <!-- <input id = "fileNameInput" name = "fileNameInput"> -->
-    <input type="submit" id = "generateSlices" name = "generateSlices" value = "generate">
+    <input type="hidden" id = "generateSlices" name = "generateSlices" value = "generate">
     <input type="hidden" id = "slices" name = "slices">
-    <!-- <input name="generate" value="Generate Design" /> -->
 </form>
 
 

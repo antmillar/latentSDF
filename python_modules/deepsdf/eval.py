@@ -27,7 +27,8 @@ size = 100
 ptsSample = np.float_([[x, y] 
                 for y in  np.linspace(-50, 50, size) 
                 for x in np.linspace(-50, 50, size)])
-                    
+pts = torch.Tensor(ptsSample).to(device)
+
 #save the numpy data locally
 def save(scene_data : np.array):
     np.save(dir_data + "/numpy" , scene_data)
@@ -106,14 +107,14 @@ def funcTimer(func):
 
 def latent_to_image(model, latent, invert = False):
 
-    coord = torch.Tensor(ptsSample).to(device)
-    out = model.forward(latent.to(device), coord)
+    out = model.forward(latent.to(device), pts)
     pixels = out.view(size, size)
 
     if(invert):
         mask = pixels < 0
     else:
         mask = pixels > 0
+
     vals = mask.type(torch.uint8) 
     vals = vals.cpu().detach().numpy()
 
@@ -151,6 +152,30 @@ def interpolate_grid(model, corners, num = 10):
     x = np.linspace(corners[0][0], corners[0][1], num)
     y = np.linspace(corners[1][1], corners[1][0], num) #bottom left is lowest y
 
+
+    tolerance = 0.25 #only identify closest if < tolerance
+    seedLatents = [[0.0,0.0], [0.0, 1.0], [1.0, 0.0], [1.0, 1.0]]
+
+
+    closestLatents = []
+    #find the closest coordinates to the latent vector of the seed designs
+    for seed in seedLatents:
+
+        closestLatent = seed
+
+        #if within bounds find the closest
+        #if outside but within certain tolerance find closest
+        
+        #only approximate the latent if within  the tolerance and within range
+        if(min([ abs(val-seed[0]) for val in x ]) < tolerance):
+            closestLatent[0] = min(x, key=lambda x:abs(x-seed[0]))
+
+        if(min([ abs(val-seed[0]) for val in y ]) < tolerance):
+            closestLatent[1] = min(y, key=lambda y:abs(y-seed[1]))
+
+        closestLatents.append(closestLatent)
+
+    print(closestLatents)
     for index, i in enumerate(x):
         for jindex, j in enumerate(y) :
         
@@ -159,9 +184,10 @@ def interpolate_grid(model, corners, num = 10):
 
             im = latent_to_image(model, latent)
 
-            if([i, j] in [[0.0,0.0], [0.0, 1.0], [1.0, 0.0], [1.0, 1.0]]):
+            if([i, j] in closestLatents):
 
                 axs[jindex, index].imshow(im, cmap = "copper")
+
             else:
 
                 axs[jindex, index].imshow(im, cmap = "gray")
@@ -285,11 +311,11 @@ def generateModel(sliceVectors, model, numSlices, res):
     latentStart = torch.tensor( [1, 0.5]).to(device)
     latentEnd = torch.tensor( [2, 0]).to(device)
 
-    ptsSample = np.float_([[x, y] 
-                        for y in  np.linspace(-50, 50, res) 
-                        for x in np.linspace(-50, 50, res)])
+    # ptsSample = np.float_([[x, y] 
+    #                     for y in  np.linspace(-50, 50, res) 
+    #                     for x in np.linspace(-50, 50, res)])
 
-    pts = torch.Tensor(ptsSample).to(device)
+    # pts = torch.Tensor(ptsSample).to(device)
 
     def createSlice(pts, latent):
 
