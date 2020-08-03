@@ -1,17 +1,14 @@
+document.querySelector("#xMin").value = latent_bounds[0]
+document.querySelector("#xMax").value = latent_bounds[1]
+document.querySelector("#yMin").value = latent_bounds[2]
+document.querySelector("#yMax").value = latent_bounds[3]
+document.querySelector("#height").value = height
+
+console.log(img_source)
+
 $(document).ready(init);
 
 
-document.querySelector("#xMin").value = latentBounds[0]
-document.querySelector("#xMax").value = latentBounds[1]
-document.querySelector("#yMin").value = latentBounds[2]
-document.querySelector("#yMax").value = latentBounds[3]
-
-
-window.globals = {
-    generate: function() {},
-    slices:  [],
-    latentBounds: latentBounds 
-  }
 
   function init(jQuery) {
     $("#gen").on('click', (e) => {
@@ -23,8 +20,18 @@ window.globals = {
         else
         {
           document.querySelector("#slices").value = globals.slices;
+          document.querySelector("#modelHeight").value = globals.height;
+
           document.querySelector("#btnGenerate").submit();
         }
       
   });
+
+  $('#height').on('input', function() {
+    window.globals.height = document.querySelector("#height").value;
+    globals.internalClicked(globals.height)
+    console.log(document.querySelector("#height").value)
+  });
+
+
   }

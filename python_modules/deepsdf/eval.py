@@ -13,6 +13,8 @@ from PIL import Image
 import mcubes
 import matplotlib.pyplot as plt
 import time
+from skimage import measure
+import openmesh as om
 
 #static
 cwd = os.getcwd()
@@ -34,7 +36,7 @@ def save(scene_data : np.array):
     np.save(dir_data + "/numpy" , scene_data)
 
 #load a point cloud and pass through the model
-def evaluate(sliceVectors):
+def evaluate(sliceVectors, height):
 
     # print("reading input PLY file...")
     # print(input_path + "/" +  fn)
@@ -54,7 +56,7 @@ def evaluate(sliceVectors):
     model = deepSDFCodedShape()#.cuda()
     model.load_state_dict(torch.load(model_path, map_location=device))
     # res = 50
-    # latent = torch.tensor( [1, 0]).to(device)
+    latent = torch.tensor( [-2, 1]).to(device)
 
     # ptsSample = np.float_([[x, y] 
     #                   for y in  np.linspace(-50, 50, res) 
@@ -63,7 +65,7 @@ def evaluate(sliceVectors):
     # pts = torch.Tensor(ptsSample).to(device)
 
 
-    # outputs = model.forward(latent, pts)
+    outputs = model.forward(latent, pts)
     # im = latent_to_image(model, latent)
 
     # print("labelling points...")
@@ -71,12 +73,11 @@ def evaluate(sliceVectors):
     
     # print("saving PLY file...")
     # save_to_PLY(fn, pred)
+    numSlices = 100
+    res = 100
 
-    # generateModel(sliceVectors, model, numSlices, res)
+    return generateModel(sliceVectors, model, height, res)
 
-
-
-    print("complete")
 
 def updateLatent(latentBounds):
 
@@ -111,11 +112,11 @@ def latent_to_image(model, latent, invert = False):
     pixels = out.view(size, size)
 
     if(invert):
-        mask = pixels < 0
-    else:
         mask = pixels > 0
+    else:
+        mask = pixels < 0
 
-    vals = mask.type(torch.uint8) 
+    vals = mask.type(torch.uint8) * 255
     vals = vals.cpu().detach().numpy()
 
     # im = Image.fromarray(vals * 255.0).convert("RGB")
@@ -165,7 +166,7 @@ def interpolate_grid(model, corners, num = 10):
 
         #if within bounds find the closest
         #if outside but within certain tolerance find closest
-        
+
         #only approximate the latent if within  the tolerance and within range
         if(min([ abs(val-seed[0]) for val in x ]) < tolerance):
             closestLatent[0] = min(x, key=lambda x:abs(x-seed[0]))
@@ -175,7 +176,6 @@ def interpolate_grid(model, corners, num = 10):
 
         closestLatents.append(closestLatent)
 
-    print(closestLatents)
     for index, i in enumerate(x):
         for jindex, j in enumerate(y) :
         
@@ -186,11 +186,12 @@ def interpolate_grid(model, corners, num = 10):
 
             if([i, j] in closestLatents):
 
+                im = 255 - im #inverting
                 axs[jindex, index].imshow(im, cmap = "copper")
 
             else:
-
-                axs[jindex, index].imshow(im, cmap = "gray")
+                # im = Image.fromarray(im * 255.0).convert("RGB") #seems to be a bug with completely white images displaying black, this stops it
+                axs[jindex, index].imshow(im, cmap="binary")
         
             axs[jindex, index].axis("off")
 
@@ -308,15 +309,6 @@ def generateModel(sliceVectors, model, numSlices, res):
 
     print("generating 3d model...")
 
-    latentStart = torch.tensor( [1, 0.5]).to(device)
-    latentEnd = torch.tensor( [2, 0]).to(device)
-
-    # ptsSample = np.float_([[x, y] 
-    #                     for y in  np.linspace(-50, 50, res) 
-    #                     for x in np.linspace(-50, 50, res)])
-
-    # pts = torch.Tensor(ptsSample).to(device)
-
     def createSlice(pts, latent):
 
         pixels = model.forward(latent, pts)
@@ -324,23 +316,170 @@ def generateModel(sliceVectors, model, numSlices, res):
         return pixels.view(res, res)
 
 
-    latentRange = latentEnd - latentStart 
-    latentStep = latentRange.div(numSlices)
     slices = []
+
+
+    # endLayer = torch.ones(res, res)
+    #add closing slice to first layer 
+    # slices.append(endLayer)
 
     for vector in sliceVectors:
         pixels = createSlice(pts, torch.tensor(vector))
         slices.append(pixels.detach().cpu())
 
+    #add closing slice to last layer
+    # slices.append(endLayer)
+ 
     stacked = np.stack(slices)
 
-    #get the 0 iso surface
-    verts, faces = mcubes.marching_cubes(stacked, 0)
+    #add alternative meshing
+    contours = []
+    floor_height = 10
+    samples = 16
 
-    #normalize verts to 50
-    verts[:,1:] /= (res / 50)
 
-    # Export the result
-    mcubes.export_obj(verts, faces,  os.path.join(dir_output, "test.obj"))
+    for idx, s in enumerate(slices):
+        if(idx > 0):
+            start_point = contours[idx - 1][0][0][:2] #previous layer first coordinate
+            slice_contours = extractContours(s, samples, start_point)
+        else:
+            slice_contours = extractContours(s, samples)
+
+        a = []
+        for contour in slice_contours:
+            a.append(np.c_[contour, floor_height * idx * np.ones((samples//len(slice_contours), 1))] )# add extra column for height
+
+        contours.append(a)
+
+
+    mesh = om.PolyMesh()
+
+    for idx in range(len(contours) - 1):
+
+        for idx2, contour in enumerate(contours[idx]):
+
+            handles1 = []
+            handles2 = []
+
+
+            #in the case where the model splits into more than one contour need to pick the order to pair up the points
+            if(len(contours[idx + 1]) > len(contours[idx]) ):
+
+                #merge the two new slices into one array
+                combined = np.vstack((contours[idx + 1][idx2], contours[idx + 1][idx2 + 1]))
+                previousSlice = contours[idx][idx2]
+
+            #find nearest point in new layer and add to handles
+                for coord in combined:
+
+                    #select item from first slice
+                    vh = mesh.add_vertex(coord)
+                    handles2.append(vh)
+                    
+                    #select closest item from second slice and remove
+                    i = getIndex(previousSlice, coord)
+                    # previousSlice, coord2 = poprow(previousSlice, i)
+                    vh2 = mesh.add_vertex(previousSlice[i])
+                    handles1.append(vh2)
+
+            else:
+
+                nextSlice = contours[idx + 1][idx2]
+
+                for coord in contour:
+                    vh = mesh.add_vertex(coord)
+                    handles1.append(vh)
+
+                    i = getIndex(nextSlice, coord)
+                    # nextSlice, coord2 = poprow(nextSlice, i)
+                    vh2 = mesh.add_vertex(nextSlice[i])
+                    handles2.append(vh2)
+
+                # for coord in contours[idx + 1][idx2]:
+                #   vh = mesh.add_vertex(coord)
+                #   handles2.append(vh)
+
+                # #deal with case where the next level has a different number of contours
+
+
+            for a in range(len(handles1)):
+              mesh.add_face(handles1[a % len(handles1)], handles1[(a+1) % len(handles1)],  handles2[(a + 1) % len(handles2)], handles2[a % len(handles2)])
+
+    #close ends
+
+
+    for contour in contours[0]:
+        handles1 = []
+        for coord in contour:
+            vh = mesh.add_vertex(coord)
+            handles1.append(vh)
+
+        mesh.add_face(handles1)
+
+
+    for contour in contours[len(contours) - 1]:
+        handles1 = []
+        for coord in contour:
+            vh = mesh.add_vertex(coord)
+            handles1.append(vh)
+        mesh.add_face(handles1)
+        
+    timestr = time.strftime("%d%m%y-%H%M%S")
+
+    fn = "model-" + timestr + ".obj"
+    om.write_mesh(os.path.join(dir_output, fn), mesh)
+    # #get the 0 iso surface
+    # verts, faces = mcubes.marching_cubes(stacked, 0)
+
+    # #normalize verts to 50
+    # verts[:,1:] /= (res / 50)
+
+    # # Export the result
+    timestr = time.strftime("%d%m%y-%H%M%S")
+
+
+    # fn = "model-" + timestr + ".obj"
+    # mcubes.export_obj(verts, faces,  os.path.join(dir_output, fn))
+
+    return fn
+
+
+def getIndex(contours, point):
+
+  # print(np.linalg.norm(np.(contours-point), axis = -1))
+  idx = np.linalg.norm(np.abs(contours-point), axis = -1).argmin()
+
+  return idx
+
+
+def extractContours(s, num_samples, start_point = None):
+
+  # Find contours at a constant value of 0.0
+  contours = measure.find_contours(s, 0.0)
+  startIndex = 0 
+
+
+  # contour_list = [contour for contour in contours]
+
+  # contours = np.vstack(contour_list)
+    
+  #extract number of points required
+  sampled_contours = []
+  contour_samples = num_samples//len(contours)
+
+  for contour in contours:
+
+    if(type(start_point) is np.ndarray):
+      startIndex = getIndex(contour, start_point)
+
+    stepSize = len(contour) // contour_samples
+
+    contour = np.vstack((contour[startIndex:], contour[:startIndex])) #reorganise list to start at nearest pt
+    sampled_contour = contour[::stepSize]
+    sampled_contour = sampled_contour[:contour_samples ] #bit hacky
+    sampled_contour = np.round(sampled_contour, 0)
+    sampled_contours.append(sampled_contour)
+
+  return sampled_contours
 
 

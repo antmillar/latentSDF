@@ -6,11 +6,10 @@ var texts = [];
 
 // JavaScript Interop
 
+globals.internalClicked = extractSlices
 
-// function internalClicked() {
-//     var slices = extractSlices(100);
-//     console.log(slices);
-// }
+
+
 
 width = 600
 
@@ -19,7 +18,7 @@ path.strokeColor =  new Color(1,0.0, 0.0, 0.5);
 path.strokeWidth = 2;
 
 var raster = new Raster({
-    source: '/static/img/latent_grid.png',
+    source: globals.latent_img_source,
     position: view.center
 });
 
@@ -42,11 +41,11 @@ text.fillColor = 'black';
 // annotate.fontSize = 30;
 // annotate.fontFamily = "sans-serif";
 // annotate.fillColor = 'black';
-// annotate.content = parseFloat(globals.latentBounds[3]);
+// annotate.content = parseFloat(globals.latent_bounds[3]);
 
 function addAxisLabels(){
 
-    var len = globals.latentBounds.length;
+    var len = globals.latent_bounds.length;
     var positions = [new PointText(new Point(margin + 30, width + margin + margin /2  )) ,
                      new PointText(new Point(width + margin - margin/2, width + margin + margin /2  )),
                      new PointText(new Point(margin/2, margin + width - 25)),
@@ -57,7 +56,7 @@ function addAxisLabels(){
         annotate.fontSize = 30;
         annotate.fontFamily = "sans-serif";
         annotate.fillColor = 'black';
-        annotate.content = parseFloat(globals.latentBounds[i]);
+        annotate.content = parseFloat(globals.latent_bounds[i]);
     }
 
 }
@@ -70,10 +69,10 @@ function mouseToLatent(point){
     var pos = point - new Point(margin, margin)
     pos = pos / width;
 
-    xMin = parseFloat(globals.latentBounds[0]);
-    xMax = parseFloat(globals.latentBounds[1]);
-    yMin = parseFloat(globals.latentBounds[2]);
-    yMax = parseFloat(globals.latentBounds[3]);
+    xMin = parseFloat(globals.latent_bounds[0]);
+    xMax = parseFloat(globals.latent_bounds[1]);
+    yMin = parseFloat(globals.latent_bounds[2]);
+    yMax = parseFloat(globals.latent_bounds[3]);
 
     var xVal = xMin + pos.x * (xMax - xMin);
     var yVal = yMax - pos.y * (yMax - yMin);
@@ -108,6 +107,7 @@ function extractSlices(sliceCount){
         for(i = 0; i <sliceCount; i++)
         {
             var pt = path.segments[0].point / width;
+            pt = mouseToLatent(point)
             slices.push([pt.x.toFixed(2), pt.y.toFixed(2)]);
          }
     }
@@ -120,11 +120,12 @@ function extractSlices(sliceCount){
         {
             var point = path.getPointAt(offsetStep * i);
             var pt = point / width;
+            pt = mouseToLatent(point)
             slices.push([pt.x.toFixed(2), pt.y.toFixed(2)]);
         }
     }
-    // console.log(slices)
-    return slices;
+    console.log(slices)
+    globals.slices = slices
 }
 
 
@@ -161,7 +162,7 @@ function onMouseDown(event) {
         path.add(event.point)
         path.smooth() //need to contrain values on path within the range if want to use this.
 
-        globals.slices = extractSlices(100);
+        extractSlices(globals.height);
     }
     
     //on right click

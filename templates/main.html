@@ -3,22 +3,35 @@
 {% block content %}
 <script type="text/paperscript" src="static/javascript/js/paperPath.js" canvas="paperCanvas"></script>
 <script type="text/javascript" src="static/javascript/js/latent.js" defer></script>
+<script type="module" src="static/javascript/js/modelView.js" defer></script>
 
 
 <script type="text/javascript">  
-  var latentBounds = {{ latentBounds|tojson }};  
-  console.log(latentBounds);
+  var latent_bounds = {{ latent_bounds|tojson }};  
+  var img_source = {{ img_source|tojson }};  
+  var active_model =  {{ active_model|tojson }};
+  var height =  {{ height|tojson }};
+
+  window.globals = {
+    internalClicked: function() {},
+    slices:  [],
+    latent_bounds: latent_bounds,
+    latent_img_source : img_source,
+    active_model: active_model,
+    height: height
+  }
 </script>
 
 <body>
-  <div style="height: 50px; margin-top: 20px">
-    <h2 class = "text-center">Latent Space Designer </h2>
+  <div style="height: 20px; margin-top: 20px">
+    <!-- <h2 class = "text-center">Latent Space Designer </h2> -->
   </div>
 
 
   <div class="row " >
   <div class="col-md-3 text-center" style=" margin-top: 100px">
-    <h5>Seed Designs</h5>
+    <h6>Seed Designs</h6>
+    <br>
     <div class = "row ">    
       <div class = "col-3" > 
         <figure class = "text-center">
@@ -51,58 +64,77 @@
    </div>
 
 
-    <form id = "myForm" action="" method="POST" style="width: 80%; margin:auto; margin-top: 100px;" class= "text-center">
-      <h5>Latent Space</h5>
-
+    <form id = "myForm" action="" method="POST" style="width: 80%; margin:auto; margin-top: 50px;" class= "text-center">
+      <h6>Latent Space</h6>
+      <br>
       <div class="form-row">
         <div class="col">
-          <label for="xMin">xMin:</label>
+          <label for="xMin">xMin</label>
           <input type="text" class="form-control text-center" id="xMin" name="xMin">
         </div>
         <div class="col">
-          <label for="xMax">xMax:</label>
+          <label for="xMax">xMax</label>
           <input type="text" class="form-control text-center" id="xMax" name="xMax">
         </div>
       </div>
 
       <div class="form-row" style="margin-top: 10px">
         <div class="col">
-          <label for="yMin">yMin:</label>
+          <label for="yMin">yMin</label>
           <input type="text" class="form-control text-center" id="yMin" name="yMin">
         </div>
         <div class="col">
-          <label for="yMax">yMax:</label>
+          <label for="yMax">yMax</label>
           <input type="text" class="form-control text-center" id="yMax" name="yMax">
         </div>
   
       </div>
 
-      <div class="form-row" style="margin-top: 30px"> 
-        <div class="col">
-          <input type="submit" class="btn btn-outline-dark"  id = "updateLatent" name = "updateLatent" value = "update latent space">
+
+
+        <div class="form-row" style="margin-top: 30px"> 
+          <div class="col md-3">
+            <input type="submit" class="btn btn-outline-dark"  id = "updateLatent" name = "updateLatent" value = "Update Latent Space">
+          </div>
         </div>
-      </div>
     </form>
-  </div>
+
+
+    <div class="row" style="margin-top: 50px">
+      <div class="col-6 offset-3">
+        <label for="xMin">Model Height</label>
+        <input type="text" class="form-control text-center" id="height" name="height">
+        <br>
+        <button type="button" class="btn btn-outline-dark" id = "gen" name = "gen" >Generate 3D Model</button>
+        </div>
+    </div>
+    </div>
     
-  <div class="col-md-6">
+  <div class="col-md-6 ">
    <!-- <input type="submit" id = 'predict' value="Predict" onclick="return save();"> -->
   <div class="mx-auto text-center">
     <br>
     <canvas id="paperCanvas"  width="800" height="800" style="border:2px solid #000000 "></canvas>
+    
     <!-- <image src = "/static/img/latent.png" width = "600", height = "600"></image> -->
 
   </div>
-</div>
 
-<div class="col-md-3 " style="margin-top: 400px">
-  <button type="button" class="btn btn-outline-dark" id = "gen" name = "gen">Generate</button>
 
+  </div>
+
+<div class="col-md-3 " style="margin-top: 300px">
+  <div class="mx-auto text-center">
+
+    <canvas id="c"   width="400" height="400" style="width:100%; height: auto"></canvas>
+  </div>
 </div>
 <!-- this passes filenames to the model -->
 <form action="" method="POST" id = "btnGenerate">
+
     <input type="hidden" id = "generateSlices" name = "generateSlices" value = "generate">
     <input type="hidden" id = "slices" name = "slices">
+    <input type="hidden" id = "modelHeight" name = "modelHeight">
 </form>
 
 

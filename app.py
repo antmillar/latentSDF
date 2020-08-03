@@ -31,13 +31,27 @@ input_path = cwd + '/static/models/inputs'
 output_path = cwd + '/static/models/outputs'
 mesh_path = cwd + '/static/models/meshes'
 
-latentBounds = [0, 1, 0, 1]
+latent_bounds = [0, 1, 0, 1]
+img_source  = '/static/img/latent_default.png'
+active_model = ''
+height = 100
+
+##TODO
+
+#autoload latent at start with defaults
+#seed designs align with vectors, store them in dict? pass from python
+#show distance between seed designs somehow?
+#display the model in GUI?
 
 #base route
 @app.route('/')
 def index():
     return render_template('index.html')
 
+#model route
+@app.route('/modelView')
+def modelView():
+    return render_template('modelView.html')
 
 #base route
 @app.route('/main',  methods = ["GET", "POST"])
@@ -48,6 +62,8 @@ def main():
         #generate 3d model
         if(request.form.get("generateSlices")):
 
+            global height
+            height = int(request.form.get("modelHeight"))
             sliceVectors = request.form.get("slices")
             sliceVectors = sliceVectors.split(",")
             coords = np.zeros((len(sliceVectors)//2, 2))
@@ -55,20 +71,23 @@ def main():
             coords[:,1] = sliceVectors[1::2]
 
             torch.cuda.empty_cache()
-            eval.evaluate(coords)
+            global active_model
+            active_model = '/static/models/outputs/' + eval.evaluate(coords, height)
 
         #update the latent space
         if(request.form.get("updateLatent")):
 
-            latentBounds[0] = float(request.form.get("xMin"))
-            latentBounds[1] = float(request.form.get("xMax"))
-            latentBounds[2] = float(request.form.get("yMin"))
-            latentBounds[3] = float(request.form.get("yMax"))
+            latent_bounds[0] = float(request.form.get("xMin"))
+            latent_bounds[1] = float(request.form.get("xMax"))
+            latent_bounds[2] = float(request.form.get("yMin"))
+            latent_bounds[3] = float(request.form.get("yMax"))
+            global img_source
+            eval.updateLatent(latent_bounds)
+            img_source = '/static/img/latent_grid.png'
 
-            eval.updateLatent(latentBounds)
 
 
-    return render_template('main.html', latentBounds = latentBounds )
+    return render_template('main.html', latent_bounds = latent_bounds, img_source = img_source, active_model = active_model, height = height )
 
 # #route to hold the latest status 
 # @app.route('/progress/<int:thread_id>')
