@@ -8,9 +8,11 @@ import random
 import threading
 import time
 import numpy as np
+from collections import namedtuple
 
 # #local module imports
 import python_modules.deepsdf.eval as eval
+import python_modules.deepsdf.latent_space as latent_space
 # import python_modules.preprocess.utils as preprocess_utils
 # import python_modules.postprocess.reconstruction as reconstruction
 
@@ -31,17 +33,21 @@ input_path = cwd + '/static/models/inputs'
 output_path = cwd + '/static/models/outputs'
 mesh_path = cwd + '/static/models/meshes'
 
-latent_bounds = [0, 1, 0, 1]
-img_source  = '/static/img/latent_default.png'
+Bounds = namedtuple('Bounds', ['xMin', 'xMax', 'yMin', 'yMax'])
+latent_bounds = Bounds(0.0, 1.0, 0.0, 1.0)
+img_source  = '/static/img/latent_grid.png'
 active_model = ''
 height = 100
-
+latent_loaded = False
 ##TODO
 
 #autoload latent at start with defaults
 #seed designs align with vectors, store them in dict? pass from python
 #show distance between seed designs somehow?
 #display the model in GUI?
+#dropdown  with active model
+
+
 
 #base route
 @app.route('/')
@@ -56,6 +62,13 @@ def modelView():
 #base route
 @app.route('/main',  methods = ["GET", "POST"])
 def main():
+
+    #on load create latent image 
+    global latent_bounds, latent_loaded
+    
+    if(not latent_loaded):
+        latent_space.updateLatent(latent_bounds)
+        latent_loaded = True
 
     if request.method == "POST":
 
@@ -77,17 +90,10 @@ def main():
         #update the latent space
         if(request.form.get("updateLatent")):
 
-            latent_bounds[0] = float(request.form.get("xMin"))
-            latent_bounds[1] = float(request.form.get("xMax"))
-            latent_bounds[2] = float(request.form.get("yMin"))
-            latent_bounds[3] = float(request.form.get("yMax"))
-            global img_source
-            eval.updateLatent(latent_bounds)
-            img_source = '/static/img/latent_grid.png'
+            latent_bounds = Bounds(float(request.form.get("xMin")), float(request.form.get("xMax")), float(request.form.get("yMin")), float(request.form.get("yMax")))
+            latent_space.updateLatent(latent_bounds)
 
-
-
-    return render_template('main.html', latent_bounds = latent_bounds, img_source = img_source, active_model = active_model, height = height )
+    return render_template('main.html', latent_bounds = list(latent_bounds), img_source = img_source, active_model = active_model, height = height )
 
 # #route to hold the latest status 
 # @app.route('/progress/<int:thread_id>')

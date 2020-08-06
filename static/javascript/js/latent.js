@@ -8,8 +8,6 @@ console.log(img_source)
 
 $(document).ready(init);
 
-
-
   function init(jQuery) {
     $("#gen").on('click', (e) => {
 
