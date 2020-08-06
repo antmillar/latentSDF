@@ -28,7 +28,7 @@ else
   const aspect = 1;  // the canvas default
   const clipNear = 0.01;
   const clipFar = 5000;
-  const radius = 50
+  const radius = 30
   camera = new THREE.PerspectiveCamera(fov, aspect, clipNear, clipFar);
   camera.position.set(radius * Math.cos( 3 * Math.PI/4) , 30, radius * Math.sin( 3 * Math.PI/4));
   camera.lookAt( 0, 0, 0 );
@@ -83,7 +83,7 @@ else
 
     let geometry = new THREE.EdgesGeometry( model.geometry );
     let wireframe = new THREE.LineSegments( geometry, matWireframe );
-    let plane = new THREE.PlaneGeometry( 20, 20, 0 );
+    let plane = new THREE.PlaneGeometry( 5, 5, 0 );
     let floor = new THREE.Mesh( plane, matFloor );
 
     //scaling/rotating

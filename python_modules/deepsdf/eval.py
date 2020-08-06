@@ -42,17 +42,6 @@ def evaluate(sliceVectors, height):
     model.load_state_dict(torch.load(model_path, map_location=device))
     # res = 50
     latent = torch.tensor( [-2, 1]).to(device)
-
-    # ptsSample = np.float_([[x, y] 
-    #                   for y in  np.linspace(-50, 50, res) 
-    #                   for x in np.linspace(-50, 50, res)])
-
-    # pts = torch.Tensor(ptsSample).to(device)
-
-
-    outputs = model.forward(latent, pts)
-    # im = latent_to_image(model, latent)
-
     # print("labelling points...")
     # pred = predict_label(model, dataloader)
     
@@ -175,10 +164,18 @@ def generateModel(sliceVectors, model, numSlices):
 
     def createSlice(pts, latent):
 
-        pixels = model.forward(latent, pts)
+        sdf = model.forward(latent, pts)
 
-        return pixels.view(res, res)
+        #need to generate a 50 x 50 sdf for the core
 
+        circle = Circle(np.array([25, 25]), 20)
+        # print(np.unique(circle.field))
+
+        # intersection = np.maximum(circle.field * -1, sdf.detach().numpy())
+        # print(type(intersection))
+        # print(intersection.shape)
+        return sdf.view(res, res)
+        # return torch.tensor(intersection).view(res, res)
 
     slices = []
 
@@ -195,7 +192,14 @@ def generateModel(sliceVectors, model, numSlices):
     # slices.append(endLayer)
  
     stacked = np.stack(slices)
+    core_diameter = 10
+    circle = Circle(np.array([res//2, res//2]), core_diameter)
+    square = Box(15, 15)
+    core = [52 * square.field.reshape(res, res)]
+    core = np.stack(core)
 
+    intersection = np.maximum(core * -1, stacked)
+    stacked = intersection
     #add alternative meshing
     # contours = []
     # floor_height = 5
@@ -313,6 +317,9 @@ def generateModel(sliceVectors, model, numSlices):
 
     # #normalize verts to 50
     verts[:,1:] /= (res / 50)
+    # print(verts.shape)
+    floor_height = 2
+    verts[:,0] *= floor_height
 
     # # Export the result
     timestr = time.strftime("%d%m%y-%H%M%S")
@@ -379,3 +386,81 @@ def extractContours(s, num_samples, level = 0.0, start_point = None):
   return sampled_contours
 
 
+
+class Shape():
+
+  def __init__(self):
+    self.res = 50
+    self.generateField(0, 50, self.res)
+
+  def generateField(self, start, end, steps):
+
+    '''Generates the a 2D signed distance field for a shape
+    
+            Parameters:
+                    start (int): Start value of coordinates
+                    end (int): End value of coordinates
+                    steps (int): Number of steps in each dimension
+
+            Returns:
+                    outputField (list): List of signed distance field values
+    '''
+    self.start = start
+    self.end = end
+    self.steps = steps
+    self.pts = np.float_([[x, y] 
+                    for y in  np.linspace(start, end, steps) 
+                    for x in np.linspace(start, end, steps)])
+
+    self.field = np.float_(list(map(self.sdf, self.pts))).reshape(steps*steps, 1)
+
+
+    # self.normalizeField()
+
+    return True
+
+  def normalizeField(self):
+
+    '''Normalizes the signed distance field to be within [-1,1]'''
+
+    absMin = abs(np.min(self.field))
+    absMax = abs(np.max(self.field))
+
+    absAbsMax = max(absMin, absMax)
+
+    self.field /= absAbsMax
+      
+
+#subclasses
+
+class Circle(Shape):
+
+  def __init__(self, center : np.array, radius : float):
+
+
+    self.center = center
+    self.radius = radius / 2
+    super().__init__()
+
+  def sdf(self, p):
+
+    return np.linalg.norm(p - self.center) - self.radius
+
+class Box(Shape):
+
+  def __init__(self, height, width):
+
+    if(height <= 0 or width <= 0):
+      raise ValueError("Height or Width cannot be negative")
+
+    self.hw = np.float_((height / 2.0, width / 2.0))
+    super().__init__()
+
+  def sdf(self, p):
+
+    #translation
+    p = p - np.array([25, 25])
+    
+    d = abs(p) - self.hw
+
+    return np.linalg.norm([max(0, item) for item in d]) + min(max(d[0], d[1]), 0)

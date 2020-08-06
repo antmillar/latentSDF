@@ -9,16 +9,22 @@
 <script type="text/javascript">  
   var latent_bounds = {{ latent_bounds|tojson }};  
   var img_source = {{ img_source|tojson }};  
+  var img_source_hm = {{ img_source_hm|tojson }};  
+
   var active_model =  {{ active_model|tojson }};
   var height =  {{ height|tojson }};
+  var coverage =  {{ coverage|tojson }};
+
 
   window.globals = {
     internalClicked: function() {},
     slices:  [],
     latent_bounds: latent_bounds,
     latent_img_source : img_source,
+    heatmap_img_source : img_source_hm,
     active_model: active_model,
-    height: height
+    height: height,
+    coverage: coverage
   }
 </script>
 
@@ -122,14 +128,29 @@
 
 
   </div>
+  
+    <div class="col-md-3" >
+      <div class="row">
 
-<div class="col-md-3 " style="margin-top: 300px">
+      <div class="col-6 offset-3 text-center">
+
+      <h6>Constraints</h6>
+      <br>
+      <label for="xMin">Coverage (%)</label>
+      <input type="text" class="form-control text-center" id="coverage" name="coverage">
+      <br>
+      <button type="button" class="btn btn-outline-dark" id = "constraint" name = "constraint" >Apply</button>
+      </div>
+      </div>
+
+
   <div class="mx-auto text-center">
-
-    <canvas id="c"   width="400" height="400" style="width:100%; height: auto"></canvas>
+    <div class = "row"  style="margin-top: 50px">
+      <canvas id="c"   width="300" height="300" style="width:100%; height: auto"></canvas>
+    </div>
   </div>
-</div>
-<!-- this passes filenames to the model -->
+
+<!-- this passes information to python -->
 <form action="" method="POST" id = "btnGenerate">
 
     <input type="hidden" id = "generateSlices" name = "generateSlices" value = "generate">
@@ -137,9 +158,15 @@
     <input type="hidden" id = "modelHeight" name = "modelHeight">
 </form>
 
+<form action="" method="POST" id = "btnConstraint">
+
+  <input type="hidden" id = "scoverage" name = "scoverage">
+
+</form>
 
 
-  </div>
+</div>
+
 
 
   </body>

@@ -30,9 +30,20 @@ Raster.prototype.rescale = function(width, height) {
 };
 
 raster.rescale(width, width);
+
+
+var rasterHM = new Raster({
+    source: globals.heatmap_img_source,
+    position: view.center
+});
+
+rasterHM.insertBelow(raster)
+rasterHM.rescale(width, width);
+
+
 margin = 100;
 
-var text = new PointText(new Point(350, 30));
+var text = new PointText(new Point(300, 30));
 text.fontSize = 16;
 text.fontFamily = "sans-serif";
 text.fillColor = 'black';
@@ -46,14 +57,14 @@ text.fillColor = 'black';
 function addAxisLabels(){
 
     var len = globals.latent_bounds.length;
-    var positions = [new PointText(new Point(margin + 30, width + margin + margin /2  )) ,
-                     new PointText(new Point(width + margin - margin/2, width + margin + margin /2  )),
-                     new PointText(new Point(margin/2, margin + width - 25)),
-                     new PointText(new Point(margin/2, margin + margin / 2))]
+    var positions = [new PointText(new Point(margin, width + margin + margin /2  )) ,
+                     new PointText(new Point(width + margin, width + margin + margin /2  )),
+                     new PointText(new Point(margin/2, margin + width)),
+                     new PointText(new Point(margin/2, margin ))]
 
     for (var i = 0; i < len; i++) {
         var annotate = positions[i]
-        annotate.fontSize = 30;
+        annotate.fontSize = 20;
         annotate.fontFamily = "sans-serif";
         annotate.fillColor = 'black';
         annotate.content = parseFloat(globals.latent_bounds[i]);
@@ -87,7 +98,7 @@ raster.onMouseMove = function(event) {
 
     var latentPoint = mouseToLatent(event.point);
 
-    text.content = "[ " + latentPoint.x.toFixed(2) + " , " + latentPoint.y.toFixed(2) + " ]";
+    text.content = "Latent : [ " + latentPoint.x.toFixed(2) + " , " + latentPoint.y.toFixed(2) + " ]";
 }
 
 //hides cursors position when not in latent space

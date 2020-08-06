@@ -36,8 +36,11 @@ mesh_path = cwd + '/static/models/meshes'
 Bounds = namedtuple('Bounds', ['xMin', 'xMax', 'yMin', 'yMax'])
 latent_bounds = Bounds(0.0, 1.0, 0.0, 1.0)
 img_source  = '/static/img/latent_grid.png'
+img_source_hm  = '/static/img/coverage_heatmap.png'
+
 active_model = ''
 height = 100
+coverage = False
 latent_loaded = False
 ##TODO
 
@@ -46,6 +49,10 @@ latent_loaded = False
 #show distance between seed designs somehow?
 #display the model in GUI?
 #dropdown  with active model
+
+#make the seed latent vectors dynamic/store them
+#in latent space capture details of the grid 
+
 
 
 
@@ -65,8 +72,8 @@ def main():
 
     #on load create latent image 
     global latent_bounds, latent_loaded
-    
     if(not latent_loaded):
+        
         latent_space.updateLatent(latent_bounds)
         latent_loaded = True
 
@@ -93,7 +100,20 @@ def main():
             latent_bounds = Bounds(float(request.form.get("xMin")), float(request.form.get("xMax")), float(request.form.get("yMin")), float(request.form.get("yMax")))
             latent_space.updateLatent(latent_bounds)
 
-    return render_template('main.html', latent_bounds = list(latent_bounds), img_source = img_source, active_model = active_model, height = height )
+        #update the latent space
+        if(request.form.get("scoverage")):
+
+            cov = request.form.get("scoverage")
+            try:
+                cov = float(cov)
+            except:
+                cov = False
+            print(cov)
+
+            latent_space.updateLatent(latent_bounds, cov)
+            
+
+    return render_template('main.html', latent_bounds = list(latent_bounds), img_source = img_source, img_source_hm = img_source_hm, active_model = active_model, height = height, coverage = coverage )
 
 # #route to hold the latest status 
 # @app.route('/progress/<int:thread_id>')

@@ -8,28 +8,40 @@ console.log(img_source)
 
 $(document).ready(init);
 
-  function init(jQuery) {
-    $("#gen").on('click', (e) => {
+function init(jQuery) {
+  $("#gen").on('click', (e) => {
 
-        if(window.globals.slices.length == 0)
-          {
-            alert("Cannot Build Model without a Path Defined");
-          }
-        else
+      if(window.globals.slices.length == 0)
         {
-          document.querySelector("#slices").value = globals.slices;
-          document.querySelector("#modelHeight").value = globals.height;
-
-          document.querySelector("#btnGenerate").submit();
+          alert("Cannot Build Model without a Path Defined");
         }
-      
-  });
+      else
+      {
+        document.querySelector("#slices").value = globals.slices;
+        document.querySelector("#modelHeight").value = globals.height;
+
+        document.querySelector("#btnGenerate").submit();
+      }
+    
+});
+
 
   $('#height').on('input', function() {
     window.globals.height = document.querySelector("#height").value;
     globals.internalClicked(globals.height)
-    console.log(document.querySelector("#height").value)
   });
 
 
+
+    $("#constraint").on('click', (e) => {
+  
+
+      document.querySelector("#scoverage").value = globals.coverage;
+      document.querySelector("#btnConstraint").submit();
+      
+  });
+
+  $('#coverage').on('input', function() {
+    window.globals.coverage = document.querySelector("#coverage").value;
+  });
   }
