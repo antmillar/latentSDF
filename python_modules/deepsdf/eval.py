@@ -214,9 +214,9 @@ def generateModel(sliceVectors, model, numSlices):
     #generate the isocontours
     contours = []
     floor_height = 2
-    samples = 40
+    samples = 30
     taper = 0
-    contour_every = 4
+    contour_every = 3
 
     for idx, s in enumerate(slices[1::contour_every]):
         
@@ -237,75 +237,75 @@ def generateModel(sliceVectors, model, numSlices):
 
         contours.append(a)
 
-    newIdx = len(contours)
-    ySlices = []
-    for i in range(stacked.shape[1]):
-      ySlices.append(stacked[:,i,:])
+    # newIdx = len(contours)
+    # ySlices = []
+    # for i in range(stacked.shape[1]):
+    #   ySlices.append(stacked[:,i,:])
 
 
-    for idx, s in enumerate(ySlices[1::contour_every*2]):
+    # for idx, s in enumerate(ySlices[0::contour_every]):
         
-        level = -idx * taper/len(ySlices)
+    #     level = -idx * taper/len(ySlices)
 
-        #after first point and checking previous layer not empty
-        if(idx > 0 and len(contours[newIdx + idx - 1]) > 0):
-            start_point = contours[newIdx + idx - 1][0][0][:2] #previous layer first coordinate
-            # slice_contours = extractContours(s, samples, level)
-            slice_contours = extractContours(s, samples, level, start_point)
+    #     #after first point and checking previous layer not empty
+    #     if(idx > 0 and len(contours[newIdx + idx - 1]) > 0):
+    #         start_point = contours[newIdx + idx - 1][0][0][:2] #previous layer first coordinate
+    #         # slice_contours = extractContours(s, samples, level)
+    #         slice_contours = extractContours(s, samples, level, start_point)
 
-        else:
-            slice_contours = extractContours(s, samples, level)
+    #     else:
+    #         slice_contours = extractContours(s, samples, level)
 
-        a = []
-        for contour in slice_contours:
+    #     a = []
+    #     for contour in slice_contours:
 
-            #swap this column as we are slicing vertically now
+    #         #swap this column as we are slicing vertically now
               
-              test = np.c_[contour, 1 * idx * contour_every*2 * np.ones((contour.shape[0], 1))]
+    #           test = np.c_[contour, 1 * idx * contour_every * np.ones((contour.shape[0], 1))]
 
-              test[:,[0, 2]] = test[:,[2, 0]]
-              test[:,2]*= floor_height #need to scale up the height
-              test = test.tolist()
-              a.append(test)
+    #           test[:,[0, 2]] = test[:,[2, 0]]
+    #           test[:,2]*= floor_height #need to scale up the height
+    #           test = test.tolist()
+    #           a.append(test)
 
-        contours.append(a)
-
-
-
-    newIdx = len(contours)
-    xSlices = []
-    for i in range(stacked.shape[2]):
-      xSlices.append(stacked[:,:,i])
+    #     contours.append(a)
 
 
-    for idx, s in enumerate(xSlices[1::contour_every]):
+
+    # newIdx = len(contours)
+    # xSlices = []
+    # for i in range(stacked.shape[2]):
+    #   xSlices.append(stacked[:,:,i])
+
+
+    # for idx, s in enumerate(xSlices[2::contour_every*2]):
         
-        level = -idx * taper/len(xSlices)
+    #     level = -idx * taper/len(xSlices)
 
-        #after first point and checking previous layer not empty
-        if(idx > 0 and len(contours[newIdx + idx - 1]) > 0):
-            start_point = contours[newIdx + idx - 1][0][0][:2] #previous layer first coordinate
-            # slice_contours = extractContours(s, samples, level)
-            slice_contours = extractContours(s, samples, level, start_point)
+    #     #after first point and checking previous layer not empty
+    #     if(idx > 0 and len(contours[newIdx + idx - 1]) > 0):
+    #         start_point = contours[newIdx + idx - 1][0][0][:2] #previous layer first coordinate
+    #         # slice_contours = extractContours(s, samples, level)
+    #         slice_contours = extractContours(s, samples, level, start_point)
 
-        else:
-            slice_contours = extractContours(s, samples, level)
+    #     else:
+    #         slice_contours = extractContours(s, samples, level)
 
-        a = []
-        for contour in slice_contours:
+    #     a = []
+    #     for contour in slice_contours:
 
-            #swap this column as we are slicing vertically now
+    #         #swap this column as we are slicing vertically now
               
-              test = np.c_[contour, 1 * idx * contour_every * np.ones((contour.shape[0], 1))]
+    #           test = np.c_[contour, 1 * idx * contour_every*2 * np.ones((contour.shape[0], 1))]
 
 
-              test[:,[0, 2]] = test[:,[2, 0]]
-              test[:,[0, 1]] = test[:,[1, 0]]
-              test[:,2]*= floor_height #need to scale up the height
-              test = test.tolist()
-              a.append(test)
+    #           test[:,[0, 2]] = test[:,[2, 0]]
+    #           test[:,[0, 1]] = test[:,[1, 0]]
+    #           test[:,2]*= floor_height #need to scale up the height
+    #           test = test.tolist()
+    #           a.append(test)
 
-        contours.append(a)
+    #     contours.append(a)
 
 
 

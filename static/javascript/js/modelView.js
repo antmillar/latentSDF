@@ -67,7 +67,7 @@ else
 
     let matGlass = new THREE.MeshPhysicalMaterial( {
       // color: 0xA4CBD4,
-      color: 0xAAAAAA,
+      color: 0x666666,
       opacity: 0.5,
       // side: THREE.DoubleSide,
       transparent: true,
@@ -75,7 +75,7 @@ else
     } );
 
     let matFloor = new THREE.MeshBasicMaterial( {color: 0x999999, side: THREE.DoubleSide} );
-    let matContours = new THREE.LineBasicMaterial( { color: 0x777777, linewidth: 1.5} );
+    let matContours = new THREE.LineBasicMaterial( { color: 0xFFFFFF, linewidth: 1.5} );
 
     //geometry
     let model = obj.children[0];
@@ -121,21 +121,45 @@ else
         points.push(new THREE.Vector3(contours[j][0][i][0],contours[j][0][i][1],contours[j][0][i][2]))
         
       }
-      let geoContour = new THREE.BufferGeometry().setFromPoints( points );
-      let line = new THREE.LineLoop( geoContour, matContours );
-      line.scale.set(0.1,0.1,0.1);
-      line.rotation.x = Math.PI / 2; 
-      line.rotation.y = Math.PI; 
-      line.translateX(center.x);
-      line.translateY(-center.z);
 
-      contour_array.push(line);
-      scene.add(line)
+   
+
+
+      // var curve = new THREE.CatmullRomCurve3(points)
+
+      // var curvePts = curve.getPoints( 60 );
+      // let geoContour = new THREE.BufferGeometry().setFromPoints( curvePts );
+      // let line = new THREE.Line( geoContour, matContours );
+      // line.scale.set(0.1,0.1,0.1);
+      // line.rotation.x = Math.PI / 2; 
+      // line.rotation.y = Math.PI; 
+      // line.translateX(center.x);
+      // line.translateY(-center.z);
+
+      // contour_array.push(line);
+      // scene.add(line)
+      // var path = new THREE.Path(points);
+      // var pathPts = path.getPoints( 60 );
+      // var geometry4 = new THREE.BufferGeometry().setFromPoints( pathPts );
+      // var material4 = new THREE.LineBasicMaterial( { color: 0xffffff } );
+      // var line = new THREE.Line( geometry4, material4 );
+
+      var heartShape = new THREE.Shape(points);
+      var extrudeSettings = { amount:0.1, bevelEnabled: false};
+
+      var geometry3 = new THREE.ExtrudeBufferGeometry( heartShape, extrudeSettings );
+      var mesh = new THREE.Mesh( geometry3, matGlass );
+
+      mesh.scale.set(0.1,0.1,0.1);
+      mesh.rotation.x = Math.PI / 2; 
+      mesh.rotation.y = Math.PI; 
+      mesh.translateX(center.x);
+      mesh.translateY(-center.z);
+      mesh.translateZ(points[0].z / 10.0);
+      scene.add( mesh );
+
+
     }
-    // console.log(points)
-
-
-
 
 
     scene.add(model, floor);
