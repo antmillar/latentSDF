@@ -16,8 +16,8 @@ device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 res = 50
 
 ptsSample = np.float_([[x, y] 
-                for y in  np.linspace(-50, 50, res) 
-                for x in np.linspace(-50, 50, res)])
+                for x in  np.linspace(-50, 50, res) 
+                for y in np.linspace(-50, 50, res)])
 pts = torch.Tensor(ptsSample).to(device)
 
 
@@ -61,7 +61,9 @@ def updateLatent(latentBounds, coverageThreshold = False):
     #should have model globaL?
     print("loading model...")
 
-    model_path = os.path.join(dir_model, "floor4square.pth")
+    model_path = os.path.join(dir_model, "8floorplans.pth")
+    model_path = os.path.join(dir_model, "8floorplans_selflearn.pth")
+
     model = deepSDFCodedShape().to(device)
     model.load_state_dict(torch.load(model_path, map_location=device))
 
@@ -95,11 +97,27 @@ def interpolate_grid(model, latentBounds, coverageThreshold, num = 10):
     # fig.subplots_adjust(wspace=0, hspace=0)
     fig.tight_layout()
     
-
+    '''
+    tensor([[-1.6229, -0.2385],
+        [-0.5678,  0.5753],
+        [-0.6880, -0.6937],
+        [ 0.2650, -0.7491],
+        [ 1.0502,  0.3029],
+        [ 0.3500, -0.3302],
+        [ 0.5312,  0.9283],
+        [ 0.0736,  0.0258]], device='cuda:0', requires_grad=True)
+        '''
 
     #TODO need to make this dynamic
-    seedLatents = [[0.0,0.0], [0.0, 1.0], [1.0, 0.0], [1.0, 1.0]]
-
+    seedLatents = [[0.0,0.0], [1.0, 0.0], [2.0, 0.0], [3.0, 0.0], [0.0, 1.0],  [1.0, 1.0], [2.0, 1.0], [3.0, 1.0]]
+    seedLatents = [[-1.6229, -0.2385],
+        [-0.5678,  0.5753],
+        [-0.6880, -0.6937],
+        [ 0.2650, -0.7491],
+        [ 1.0502,  0.3029],
+        [ 0.3500, -0.3302],
+        [ 0.5312,  0.9283],
+        [ 0.0736,  0.0258]]
     #axes
     xAx = np.linspace(latentBounds.xMin, latentBounds.xMax, num)
     yAx = np.linspace(latentBounds.yMin, latentBounds.yMax, num)
@@ -201,6 +219,8 @@ def process_latent(model, latent, invert = False):
 
     #generate sdf from latent vector using model
     sdf = model.forward(latent.to(device), pts)
+    # sdf = model.forward(latent, pts)
+
     coverage = get_area_covered(sdf)
     pixels = sdf.view(res, res)
 

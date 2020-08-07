@@ -8,6 +8,7 @@ from torch.utils.data import DataLoader
 from .architectures import deepSDFCodedShape
 from.utils import funcTimer
 
+import json
 from pathlib import Path
 import numpy
 from PIL import Image
@@ -16,6 +17,7 @@ import matplotlib.pyplot as plt
 import time
 from skimage import measure
 import openmesh as om
+import pyvista as pv
 
 #static
 cwd = os.getcwd()
@@ -36,7 +38,9 @@ pts = torch.Tensor(ptsSample).to(device)
 def evaluate(sliceVectors, height):
  
     print("loading model...")
-    model_path = os.path.join(dir_model, "floor4square.pth")
+    model_path = os.path.join(dir_model, "8floorplans.pth")
+    model_path = os.path.join(dir_model, "8floorplans_selflearn.pth")
+
 
     model = deepSDFCodedShape()#.cuda()
     model.load_state_dict(torch.load(model_path, map_location=device))
@@ -180,51 +184,141 @@ def generateModel(sliceVectors, model, numSlices):
     slices = []
 
 
-    # endLayer = torch.ones(res, res)
+    endLayer = torch.ones(res, res)
     #add closing slice to first layer 
-    # slices.append(endLayer)
+    slices.append(endLayer)
 
     for vector in sliceVectors:
         pixels = createSlice(pts, torch.tensor(vector))
+        ##need to correct for values changing as slices are added in 3d
         slices.append(pixels.detach().cpu())
 
     #add closing slice to last layer
-    # slices.append(endLayer)
+    slices.append(endLayer)
  
+    ground_floor = slices[1]
+    ground_floor_min = torch.min(ground_floor)
+    ground_floor_min_coords = torch.nonzero(ground_floor == torch.min(ground_floor))
+    
     stacked = np.stack(slices)
     core_diameter = 10
+    core_center = np.array([25, 25])
     circle = Circle(np.array([res//2, res//2]), core_diameter)
-    square = Box(15, 15)
+    square = Box(core_diameter, core_diameter, core_center)
     core = [52 * square.field.reshape(res, res)]
     core = np.stack(core)
 
     intersection = np.maximum(core * -1, stacked)
-    stacked = intersection
-    #add alternative meshing
-    # contours = []
-    # floor_height = 5
-    # samples = 30
-    # taper = 0
+    # stacked = intersection
 
-    # for idx, s in enumerate(slices):
+    #generate the isocontours
+    contours = []
+    floor_height = 2
+    samples = 40
+    taper = 0
+    contour_every = 4
+
+    for idx, s in enumerate(slices[1::contour_every]):
         
-    #     level = -idx * taper/len(slices)
+        level = -idx * taper/len(slices)
 
-    #     #after first point and checking previous layer not empty
-    #     if(idx > 0 and len(contours[idx - 1]) > 0):
-    #         start_point = contours[idx - 1][0][0][:2] #previous layer first coordinate
-    #         # slice_contours = extractContours(s, samples, level)
-    #         slice_contours = extractContours(s, samples, level, start_point)
+        #after first point and checking previous layer not empty
+        if(idx > 0 and len(contours[idx - 1]) > 0):
+            start_point = contours[idx - 1][0][0][:2] #previous layer first coordinate
+            # slice_contours = extractContours(s, samples, level)
+            slice_contours = extractContours(s, samples, level, start_point)
 
-    #     else:
-    #         slice_contours = extractContours(s, samples, level)
+        else:
+            slice_contours = extractContours(s, samples, level)
 
-    #     a = []
-    #     for contour in slice_contours:
-    #         a.append(np.c_[contour, floor_height * idx * np.ones((contour.shape[0], 1))] )# add extra column for height
+        a = []
+        for contour in slice_contours:
+            a.append(np.c_[contour, floor_height * idx * contour_every * np.ones((contour.shape[0], 1))].tolist() )# add extra column for height
 
-    #     contours.append(a)
+        contours.append(a)
 
+    newIdx = len(contours)
+    ySlices = []
+    for i in range(stacked.shape[1]):
+      ySlices.append(stacked[:,i,:])
+
+
+    for idx, s in enumerate(ySlices[1::contour_every*2]):
+        
+        level = -idx * taper/len(ySlices)
+
+        #after first point and checking previous layer not empty
+        if(idx > 0 and len(contours[newIdx + idx - 1]) > 0):
+            start_point = contours[newIdx + idx - 1][0][0][:2] #previous layer first coordinate
+            # slice_contours = extractContours(s, samples, level)
+            slice_contours = extractContours(s, samples, level, start_point)
+
+        else:
+            slice_contours = extractContours(s, samples, level)
+
+        a = []
+        for contour in slice_contours:
+
+            #swap this column as we are slicing vertically now
+              
+              test = np.c_[contour, 1 * idx * contour_every*2 * np.ones((contour.shape[0], 1))]
+
+              test[:,[0, 2]] = test[:,[2, 0]]
+              test[:,2]*= floor_height #need to scale up the height
+              test = test.tolist()
+              a.append(test)
+
+        contours.append(a)
+
+
+
+    newIdx = len(contours)
+    xSlices = []
+    for i in range(stacked.shape[2]):
+      xSlices.append(stacked[:,:,i])
+
+
+    for idx, s in enumerate(xSlices[1::contour_every]):
+        
+        level = -idx * taper/len(xSlices)
+
+        #after first point and checking previous layer not empty
+        if(idx > 0 and len(contours[newIdx + idx - 1]) > 0):
+            start_point = contours[newIdx + idx - 1][0][0][:2] #previous layer first coordinate
+            # slice_contours = extractContours(s, samples, level)
+            slice_contours = extractContours(s, samples, level, start_point)
+
+        else:
+            slice_contours = extractContours(s, samples, level)
+
+        a = []
+        for contour in slice_contours:
+
+            #swap this column as we are slicing vertically now
+              
+              test = np.c_[contour, 1 * idx * contour_every * np.ones((contour.shape[0], 1))]
+
+
+              test[:,[0, 2]] = test[:,[2, 0]]
+              test[:,[0, 1]] = test[:,[1, 0]]
+              test[:,2]*= floor_height #need to scale up the height
+              test = test.tolist()
+              a.append(test)
+
+        contours.append(a)
+
+
+
+    #filter out empty contours
+    contours = [item for item in contours if item != []]
+
+
+    #convert contours to JSON to be loaded in threeJS
+    # contour = contours[1][0].tolist()
+    # contour = json.dumps(data)
+
+    # with open(os.path.join(dir_output, 'data.json'), 'w') as f:
+    #   json.dump(data, f)
 
     # mesh = om.PolyMesh()
 
@@ -306,29 +400,59 @@ def generateModel(sliceVectors, model, numSlices):
     #         handles1.append(vh)
     #     mesh.add_face(handles1)
 
-    timestr = time.strftime("%d%m%y-%H%M%S")
+    ##flattens an irregular nested list
+    import collections
+    def flatten(l):
+      for el in l:
+        ##stop recursion once reach the coordinate list
+          if isinstance(el, collections.Iterable) and not isinstance(el, (str, bytes)) and not(len(el) == 3 and isinstance(el[0], float)):
+              yield from flatten(el)
+          else:
+              yield el
 
-    fn = "model-" + timestr + ".obj"
+
+    # flat_list = [item for sublist in contours for item in sublist]
+    # flat_list = list(flatten(contours))
+    # print(len(flat_list))
+    # new_list = [item for sublist in contours for item in sublist]
+    # list2 = [x for x in flat_list if  any(isinstance(item, float) for item in x)]
+    # print(type(flat_list[0][0]))
+    # print(flat_list[0])
+
+
+    # print(contours.shape)
+    # stacked = np.stack(contours)
     # om.write_mesh(os.path.join(dir_output, fn), mesh)
-
 
     # #get the 0 iso surface
     verts, faces = mcubes.marching_cubes(stacked, 0)
 
+
     # #normalize verts to 50
     verts[:,1:] /= (res / 50)
     # print(verts.shape)
-    floor_height = 2
     verts[:,0] *= floor_height
 
+
+    # new_arr = np.ones((faces.shape[0], faces.shape[1] + 1), dtype=np.int32) * 3
+    # new_arr[:,1:] = faces
+
+    # verts = np.round(verts, 0)
+    # mesh = pv.PolyData(verts, new_arr)
+    # points = pv.PolyData(flat_list)
+    # surf = points.delaunay_3d().extract_geometry().clean()
+    # mesh = mesh.decimate(0.3)
+
+    # print(verts % 1 == 0)
+    # fn = "model-" + timestr + ".obj"
     # # Export the result
     timestr = time.strftime("%d%m%y-%H%M%S")
 
-
-    # fn = "model-" + timestr + ".obj"
+    fn = "model-" + timestr + ".obj"
     mcubes.export_obj(verts, faces,  os.path.join(dir_output, fn))
+    # pv.save_meshio(os.path.join(dir_output, fn), surf)
 
-    return fn
+    return fn, contours
 
 
 def poprow(my_array,pr):
@@ -365,7 +489,7 @@ def extractContours(s, num_samples, level = 0.0, start_point = None):
   if(len(contours) == 0):
       return sampled_contours
 
-  contour_samples = num_samples//len(contours)
+  contour_samples = num_samples#//len(contours)
 
   for contour in contours:
 
@@ -379,7 +503,7 @@ def extractContours(s, num_samples, level = 0.0, start_point = None):
 
     contour = np.vstack((contour[startIndex:], contour[:startIndex])) #reorganise list to start at nearest pt
     sampled_contour = contour[::stepSize]
-    sampled_contour = sampled_contour[:contour_samples ] #bit hacky
+    # sampled_contour = sampled_contour[:contour_samples ] #bit hacky
     sampled_contour = np.round(sampled_contour, 0)
     sampled_contours.append(sampled_contour)
 
@@ -448,18 +572,19 @@ class Circle(Shape):
 
 class Box(Shape):
 
-  def __init__(self, height, width):
+  def __init__(self, height: float, width: float, center: np.array):
 
     if(height <= 0 or width <= 0):
       raise ValueError("Height or Width cannot be negative")
 
     self.hw = np.float_((height / 2.0, width / 2.0))
+    self.center = center
     super().__init__()
 
   def sdf(self, p):
 
     #translation
-    p = p - np.array([25, 25])
+    p = p - self.center
     
     d = abs(p) - self.hw
 

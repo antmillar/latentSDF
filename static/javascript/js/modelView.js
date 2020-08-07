@@ -15,13 +15,13 @@ else
 {  
   //scene
   scene = new THREE.Scene();
-  scene.background = new THREE.Color("white");
+  scene.background = new THREE.Color(0xEEEEEE);
 
-  //grid
-  const size = 100;
-  const divisions = 50;
-  let helper = new THREE.GridHelper( size, divisions, 0x444444, 0x444444 );
-  scene.add( helper );
+  // //grid
+  // const size = 100;
+  // const divisions = 50;
+  // let helper = new THREE.GridHelper( size, divisions, 0x444444, 0x444444 );
+  // scene.add( helper );
 
   //camera
   const fov = 45;
@@ -66,15 +66,16 @@ else
     //materials
 
     let matGlass = new THREE.MeshPhysicalMaterial( {
-      color: 0xA4CBD4,
-      opacity: 0.75,
-      side: THREE.DoubleSide,
+      // color: 0xA4CBD4,
+      color: 0xAAAAAA,
+      opacity: 0.5,
+      // side: THREE.DoubleSide,
       transparent: true,
       reflectivity: 0.5,
     } );
 
-    let matFloor = new THREE.MeshBasicMaterial( {color: 0x444444, side: THREE.DoubleSide} );
-    let matWireframe = new THREE.LineBasicMaterial( { color: 0x333333, linewidth: 1} );
+    let matFloor = new THREE.MeshBasicMaterial( {color: 0x999999, side: THREE.DoubleSide} );
+    let matContours = new THREE.LineBasicMaterial( { color: 0x777777, linewidth: 1.5} );
 
     //geometry
     let model = obj.children[0];
@@ -82,7 +83,7 @@ else
     model.material = matGlass
 
     let geometry = new THREE.EdgesGeometry( model.geometry );
-    let wireframe = new THREE.LineSegments( geometry, matWireframe );
+    // let wireframe = new THREE.LineSegments( geometry, matWireframe );
     let plane = new THREE.PlaneGeometry( 5, 5, 0 );
     let floor = new THREE.Mesh( plane, matFloor );
 
@@ -90,8 +91,8 @@ else
     model.scale.set(0.1,0.1,0.1);
     model.rotation.z = Math.PI / 2; 
 
-    wireframe.scale.set(0.1,0.1,0.1);
-    wireframe.rotation.z = Math.PI / 2; 
+    // wireframe.scale.set(0.1,0.1,0.1);
+    // wireframe.rotation.z = Math.PI / 2; 
 
     floor.rotation.x = -Math.PI / 2; 
 
@@ -105,11 +106,39 @@ else
     model.translateZ(-center.z);
     model.translateY(center.x);
 
-    wireframe.translateZ(-center.z);
-    wireframe.translateY(center.x);
+    // wireframe.translateZ(-center.z);
+    // wireframe.translateY(center.x);
+
+    console.log(contours)
+    let contour_array = [];
+
+    for(let j = 0; j < contours.length; j++)
+    {
+      var points = [];
+      // console.log(contours[j])
+      for(let i = 0; i < contours[j][0].length; i++)
+      {
+        points.push(new THREE.Vector3(contours[j][0][i][0],contours[j][0][i][1],contours[j][0][i][2]))
+        
+      }
+      let geoContour = new THREE.BufferGeometry().setFromPoints( points );
+      let line = new THREE.LineLoop( geoContour, matContours );
+      line.scale.set(0.1,0.1,0.1);
+      line.rotation.x = Math.PI / 2; 
+      line.rotation.y = Math.PI; 
+      line.translateX(center.x);
+      line.translateY(-center.z);
+
+      contour_array.push(line);
+      scene.add(line)
+    }
+    // console.log(points)
 
 
-    scene.add(model, wireframe, floor);
+
+
+
+    scene.add(model, floor);
     animate();
   });
 

@@ -14,7 +14,9 @@
   var active_model =  {{ active_model|tojson }};
   var height =  {{ height|tojson }};
   var coverage =  {{ coverage|tojson }};
+  var contours =  {{ contours|tojson }};
 
+  console.log(contours)
 
   window.globals = {
     internalClicked: function() {},
@@ -24,7 +26,8 @@
     heatmap_img_source : img_source_hm,
     active_model: active_model,
     height: height,
-    coverage: coverage
+    coverage: coverage,
+    contours: contours
   }
 </script>
 
@@ -108,7 +111,7 @@
 
     <div class="row" style="margin-top: 50px">
       <div class="col-6 offset-3">
-        <label for="xMin">Model Height</label>
+        <label for="xMin">Model Floors</label>
         <input type="text" class="form-control text-center" id="height" name="height">
         <br>
         <button type="button" class="btn btn-outline-dark" id = "gen" name = "gen" >Generate 3D Model</button>

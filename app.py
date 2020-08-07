@@ -34,7 +34,7 @@ output_path = cwd + '/static/models/outputs'
 mesh_path = cwd + '/static/models/meshes'
 
 Bounds = namedtuple('Bounds', ['xMin', 'xMax', 'yMin', 'yMax'])
-latent_bounds = Bounds(0.0, 1.0, 0.0, 1.0)
+latent_bounds = Bounds(-1.5, 1.0, -1.0, 1.0)
 img_source  = '/static/img/latent_grid.png'
 img_source_hm  = '/static/img/coverage_heatmap.png'
 
@@ -42,6 +42,7 @@ active_model = ''
 height = 100
 coverage = False
 latent_loaded = False
+contours = False
 ##TODO
 
 #autoload latent at start with defaults
@@ -91,8 +92,10 @@ def main():
             coords[:,1] = sliceVectors[1::2]
 
             torch.cuda.empty_cache()
+            global contours
+            model_name, contours =  eval.evaluate(coords, height)
             global active_model
-            active_model = '/static/models/outputs/' + eval.evaluate(coords, height)
+            active_model = '/static/models/outputs/' + model_name
 
         #update the latent space
         if(request.form.get("updateLatent")):
@@ -113,7 +116,7 @@ def main():
             latent_space.updateLatent(latent_bounds, cov)
             
 
-    return render_template('main.html', latent_bounds = list(latent_bounds), img_source = img_source, img_source_hm = img_source_hm, active_model = active_model, height = height, coverage = coverage )
+    return render_template('main.html', latent_bounds = list(latent_bounds), img_source = img_source, img_source_hm = img_source_hm, active_model = active_model, height = height, coverage = coverage, contours = contours )
 
 # #route to hold the latest status 
 # @app.route('/progress/<int:thread_id>')
