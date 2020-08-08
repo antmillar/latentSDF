@@ -15,8 +15,10 @@
   var height =  {{ height|tojson }};
   var coverage =  {{ coverage|tojson }};
   var contours =  {{ contours|tojson }};
+  var floors =  {{ floors|tojson }};
+  var model_details =  {{ model_details|tojson }};
 
-  console.log(contours)
+
 
   window.globals = {
     internalClicked: function() {},
@@ -27,16 +29,16 @@
     active_model: active_model,
     height: height,
     coverage: coverage,
-    contours: contours
+    contours: contours,
+    floors: floors,
+
   }
 </script>
 
 <body>
-  <div style="height: 20px; margin-top: 20px">
-    <!-- <h2 class = "text-center">Latent Space Designer </h2> -->
-  </div>
 
 
+<!-- SEED DESIGN INFO -->
   <div class="row " >
   <div class="col-md-3 text-center" style=" margin-top: 100px">
     <h6>Seed Designs</h6>
@@ -72,7 +74,7 @@
 
    </div>
 
-
+<!-- LATENT SPACE INPUTS -->
     <form id = "myForm" action="" method="POST" style="width: 80%; margin:auto; margin-top: 50px;" class= "text-center">
       <h6>Latent Space</h6>
       <br>
@@ -108,15 +110,21 @@
         </div>
     </form>
 
-
-    <div class="row" style="margin-top: 50px">
-      <div class="col-6 offset-3">
-        <label for="xMin">Model Floors</label>
+<!-- MODEL INPUTS -->
+    <div class="row" style="width: 80%; margin:auto; margin-top: 50px">
+      <!-- <div class="col-6 offset-3"> -->
+        <div class="col">
+        <label for="height">Model Floors</label>
         <input type="text" class="form-control text-center" id="height" name="height">
+        </div>
+        <div class="col">
+          <label for="taper">Taper</label>
+        <input type="text" class="form-control text-center" id="taper" name="taper", value = 0.0 >
+      </div>
+      </div>
         <br>
         <button type="button" class="btn btn-outline-dark" id = "gen" name = "gen" >Generate 3D Model</button>
-        </div>
-    </div>
+    <!-- </div> -->
     </div>
     
   <div class="col-md-6 ">
@@ -132,6 +140,7 @@
 
   </div>
   
+  <!-- CONSTRAINTS -->
     <div class="col-md-3" >
       <div class="row">
 
@@ -146,12 +155,31 @@
       </div>
       </div>
 
-
+<!-- MODEL DISPLAY CANVAS -->
   <div class="mx-auto text-center">
     <div class = "row"  style="margin-top: 50px">
       <canvas id="c"   width="300" height="300" style="width:100%; height: auto"></canvas>
     </div>
   </div>
+
+  <!-- MODEL DETAILS -->
+  <div class="col-6 offset-3 text-center" style="margin-top: 20px">
+
+    {% for field, value in model_details._asdict().items() %}
+    <div class = "row">
+      <div class = "col">
+        <small>{{field}}</small>
+      </div>
+      <div class = "col">
+        <small>{{value}}</small>
+      </div>
+    </div>
+    {% endfor %}
+
+  </div>
+
+
+
 
 <!-- this passes information to python -->
 <form action="" method="POST" id = "btnGenerate">
@@ -159,6 +187,7 @@
     <input type="hidden" id = "generateSlices" name = "generateSlices" value = "generate">
     <input type="hidden" id = "slices" name = "slices">
     <input type="hidden" id = "modelHeight" name = "modelHeight">
+    <input type="hidden" id = "modelTaper" name = "modelTaper">
 </form>
 
 <form action="" method="POST" id = "btnConstraint">

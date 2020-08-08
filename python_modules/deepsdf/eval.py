@@ -6,7 +6,7 @@ import os
 import torch
 from torch.utils.data import DataLoader
 from .architectures import deepSDFCodedShape
-from.utils import funcTimer
+from.utils import funcTimer, get_area_covered
 
 import json
 from pathlib import Path
@@ -18,6 +18,7 @@ import time
 from skimage import measure
 import openmesh as om
 import pyvista as pv
+from collections import namedtuple
 
 #static
 cwd = os.getcwd()
@@ -35,7 +36,7 @@ ptsSample = np.float_([[x, y]
 pts = torch.Tensor(ptsSample).to(device)
 
 #load a torch model and generate slices
-def evaluate(sliceVectors, height):
+def evaluate(sliceVectors, height, taper):
  
     print("loading model...")
     model_path = os.path.join(dir_model, "8floorplans.pth")
@@ -53,7 +54,7 @@ def evaluate(sliceVectors, height):
     # save_to_PLY(fn, pred)
     numSlices = 100
 
-    return generateModel(sliceVectors, model, height)
+    return generateModel(sliceVectors, model, height, taper)
 
 
 
@@ -162,9 +163,10 @@ def save_to_PLY(fn : str, pred):
 
 
 @funcTimer
-def generateModel(sliceVectors, model, numSlices):
+def generateModel(sliceVectors, model, numSlices, taper):
 
     print("generating 3d model...")
+
 
     def createSlice(pts, latent):
 
@@ -173,29 +175,59 @@ def generateModel(sliceVectors, model, numSlices):
         #need to generate a 50 x 50 sdf for the core
 
         circle = Circle(np.array([25, 25]), 20)
+        coverage = get_area_covered(sdf)
+
         # print(np.unique(circle.field))
 
         # intersection = np.maximum(circle.field * -1, sdf.detach().numpy())
         # print(type(intersection))
         # print(intersection.shape)
-        return sdf.view(res, res)
+        return sdf.view(res, res), coverage
         # return torch.tensor(intersection).view(res, res)
 
     slices = []
+    cores = []
 
 
     endLayer = torch.ones(res, res)
     #add closing slice to first layer 
     slices.append(endLayer)
+    cores.append(endLayer)
+    # add = 0.0
 
-    for vector in sliceVectors:
-        pixels = createSlice(pts, torch.tensor(vector))
+    #clamp value
+    taper = min(1.0, max(taper, 0.0))
+    sliceCount = len(sliceVectors)
+    slices_to_taper = int(sliceCount* taper)
+
+    coverages = []
+
+    for vector in sliceVectors[:sliceCount - slices_to_taper]:
+        sdf, coverage = createSlice(pts, torch.tensor(vector))
+        coverages.append(coverage)
+
         ##need to correct for values changing as slices are added in 3d
-        slices.append(pixels.detach().cpu())
+        slices.append(sdf.detach().cpu())
+
+
+    #tapering
+    for i in range(slices_to_taper):
+      ##cubic aymptote
+        shrinkage = 1.0 / (slices_to_taper *slices_to_taper * slices_to_taper)
+        slices.append(slices[-slices_to_taper + i].detach().cpu() + shrinkage * i*i*i)
+
+  
+    #create cores
+    for sdf in slices:
+        core = sdf + 0.4
+        cores.append(core.detach().cpu())
 
     #add closing slice to last layer
     slices.append(endLayer)
+    # cores.append(endLayer)
  
+    minCoverage = min(coverages)
+    maxCoverage = max(coverages)
     ground_floor = slices[1]
     ground_floor_min = torch.min(ground_floor)
     ground_floor_min_coords = torch.nonzero(ground_floor == torch.min(ground_floor))
@@ -213,15 +245,45 @@ def generateModel(sliceVectors, model, numSlices):
 
     #generate the isocontours
     contours = []
+    floors = []
     floor_height = 2
-    samples = 30
-    taper = 0
+    samples = 100
     contour_every = 3
+    floor_every = 1
+    level = 0.0
 
-    for idx, s in enumerate(slices[1::contour_every]):
+    ##funny indexing due to extra ends added to close form
+    for idx, s in enumerate(slices[1:-2:floor_every]):
         
-        level = -idx * taper/len(slices)
+        # level = -idx * taper/len(slices)
 
+        #after first point and checking previous layer not empty
+        if(idx > 0 and len(floors[idx - 1]) > 0):
+            start_point = floors[idx - 1][0][0][:2] #previous layer first coordinate
+            # slice_contours = extractContours(s, samples, level)
+            floor_contours = extractContours(s, samples, level, start_point)
+
+        else:
+            floor_contours = extractContours(s, samples, level)
+
+        a = []
+        for floor in floor_contours:
+            test = np.c_[floor, idx * floor_every * np.ones((floor.shape[0], 1))]
+            test[:,2] += 1 #subtract one for the extra base plane
+            test[:,2]*= floor_height #need to scale up the height
+            test = test.tolist()
+            a.append(test)# add extra column for height
+
+        floors.append(a)
+
+    #create vertical contours
+    ySlices = []
+    for i in range(stacked.shape[1]):
+      ySlices.append(stacked[:,i,:])
+
+
+    for idx, s in enumerate(ySlices[::contour_every]):
+        
         #after first point and checking previous layer not empty
         if(idx > 0 and len(contours[idx - 1]) > 0):
             start_point = contours[idx - 1][0][0][:2] #previous layer first coordinate
@@ -233,42 +295,17 @@ def generateModel(sliceVectors, model, numSlices):
 
         a = []
         for contour in slice_contours:
-            a.append(np.c_[contour, floor_height * idx * contour_every * np.ones((contour.shape[0], 1))].tolist() )# add extra column for height
+
+            #swap this column as we are slicing vertically now
+              
+              test = np.c_[contour, 1 * idx * contour_every * np.ones((contour.shape[0], 1))]
+
+              test[:,[0, 2]] = test[:,[2, 0]]
+              test[:,2]*= floor_height #need to scale up the height
+              test = test.tolist()
+              a.append(test)
 
         contours.append(a)
-
-    # newIdx = len(contours)
-    # ySlices = []
-    # for i in range(stacked.shape[1]):
-    #   ySlices.append(stacked[:,i,:])
-
-
-    # for idx, s in enumerate(ySlices[0::contour_every]):
-        
-    #     level = -idx * taper/len(ySlices)
-
-    #     #after first point and checking previous layer not empty
-    #     if(idx > 0 and len(contours[newIdx + idx - 1]) > 0):
-    #         start_point = contours[newIdx + idx - 1][0][0][:2] #previous layer first coordinate
-    #         # slice_contours = extractContours(s, samples, level)
-    #         slice_contours = extractContours(s, samples, level, start_point)
-
-    #     else:
-    #         slice_contours = extractContours(s, samples, level)
-
-    #     a = []
-    #     for contour in slice_contours:
-
-    #         #swap this column as we are slicing vertically now
-              
-    #           test = np.c_[contour, 1 * idx * contour_every * np.ones((contour.shape[0], 1))]
-
-    #           test[:,[0, 2]] = test[:,[2, 0]]
-    #           test[:,2]*= floor_height #need to scale up the height
-    #           test = test.tolist()
-    #           a.append(test)
-
-    #     contours.append(a)
 
 
 
@@ -309,7 +346,9 @@ def generateModel(sliceVectors, model, numSlices):
 
 
 
-    #filter out empty contours
+    #filter out empty contours/floors
+    floors = [item for item in floors if item != []]
+
     contours = [item for item in contours if item != []]
 
 
@@ -426,16 +465,21 @@ def generateModel(sliceVectors, model, numSlices):
 
     # #get the 0 iso surface
     verts, faces = mcubes.marching_cubes(stacked, 0)
-
+    vertsCore, facesCore = mcubes.marching_cubes(np.stack(cores), 0)
 
     # #normalize verts to 50
     verts[:,1:] /= (res / 50)
+    vertsCore[:,1:] /= (res / 50)
+
     # print(verts.shape)
+    verts[:,0] -= 1
     verts[:,0] *= floor_height
 
+    vertsCore[:,0] -= 1
+    vertsCore[:,0] *= floor_height
 
-    # new_arr = np.ones((faces.shape[0], faces.shape[1] + 1), dtype=np.int32) * 3
-    # new_arr[:,1:] = faces
+    new_arr = np.ones((faces.shape[0], faces.shape[1] + 1), dtype=np.int32) * 3
+    new_arr[:,1:] = faces
 
     # verts = np.round(verts, 0)
     # mesh = pv.PolyData(verts, new_arr)
@@ -449,10 +493,16 @@ def generateModel(sliceVectors, model, numSlices):
     timestr = time.strftime("%d%m%y-%H%M%S")
 
     fn = "model-" + timestr + ".obj"
+    core_fn = "core_" + fn
     mcubes.export_obj(verts, faces,  os.path.join(dir_output, fn))
+    mcubes.export_obj(vertsCore, facesCore,  os.path.join(dir_output, core_fn))
+
     # pv.save_meshio(os.path.join(dir_output, fn), surf)
 
-    return fn, contours
+    Details = namedtuple("Details", ["floors", "taper", "maxCoverage", "minCoverage"])
+    model_details = Details(numSlices, taper, maxCoverage, minCoverage)
+
+    return fn, contours, floors, model_details
 
 
 def poprow(my_array,pr):
@@ -508,6 +558,7 @@ def extractContours(s, num_samples, level = 0.0, start_point = None):
     sampled_contours.append(sampled_contour)
 
   return sampled_contours
+
 
 
 

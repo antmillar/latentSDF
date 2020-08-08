@@ -4,6 +4,7 @@ import matplotlib.pyplot as plt
 from.utils import funcTimer
 import os
 from .architectures import deepSDFCodedShape
+from.utils import funcTimer, get_area_covered
 import seaborn as sns
 
 cwd = os.getcwd()
@@ -237,17 +238,7 @@ def process_latent(model, latent, invert = False):
 
     return vals, coverage
 
-def get_area_covered(sdf):
 
-    #count the proportion of values that are negative
-    temp = sdf.cpu().detach().numpy()
-    inside = temp < 0
-    insideCount = np.sum(inside)
-
-    ptCount = sdf.shape[0]
-
-    coverage = (insideCount / ptCount).item()
-    return coverage
 
 def grid_extremes(latentList):
     """Calculates the corners that create a latent space that covers all latent vectors

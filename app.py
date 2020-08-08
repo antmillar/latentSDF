@@ -43,6 +43,9 @@ height = 100
 coverage = False
 latent_loaded = False
 contours = False
+floors = False
+model_details = False
+
 ##TODO
 
 #autoload latent at start with defaults
@@ -77,6 +80,7 @@ def main():
         
         latent_space.updateLatent(latent_bounds)
         latent_loaded = True
+        # return redirect(url_for('main'))
 
     if request.method == "POST":
 
@@ -85,6 +89,13 @@ def main():
 
             global height
             height = int(request.form.get("modelHeight"))
+
+            try:
+                taper = float(request.form.get("modelTaper"))
+                
+            except:
+                taper = 0.0
+
             sliceVectors = request.form.get("slices")
             sliceVectors = sliceVectors.split(",")
             coords = np.zeros((len(sliceVectors)//2, 2))
@@ -92,8 +103,8 @@ def main():
             coords[:,1] = sliceVectors[1::2]
 
             torch.cuda.empty_cache()
-            global contours
-            model_name, contours =  eval.evaluate(coords, height)
+            global contours, floors, model_details
+            model_name, contours, floors, model_details =  eval.evaluate(coords, height, taper)
             global active_model
             active_model = '/static/models/outputs/' + model_name
 
@@ -116,7 +127,7 @@ def main():
             latent_space.updateLatent(latent_bounds, cov)
             
 
-    return render_template('main.html', latent_bounds = list(latent_bounds), img_source = img_source, img_source_hm = img_source_hm, active_model = active_model, height = height, coverage = coverage, contours = contours )
+    return render_template('main.html', latent_bounds = list(latent_bounds), img_source = img_source, img_source_hm = img_source_hm, active_model = active_model, height = height, coverage = coverage, contours = contours, floors = floors, model_details = model_details )
 
 # #route to hold the latest status 
 # @app.route('/progress/<int:thread_id>')

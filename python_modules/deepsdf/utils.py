@@ -1,4 +1,5 @@
 import time
+import numpy as np
 
 def funcTimer(func):
 
@@ -12,3 +13,15 @@ def funcTimer(func):
         return result
 
     return timedFunc
+
+
+def get_area_covered(sdf):
+
+    #count the proportion of values that are negative
+    temp = sdf.cpu().detach().numpy()
+    inside = temp < 0
+    insideCount = np.sum(inside)
+    ptCount = sdf.shape[0]
+
+    coverage = (insideCount / ptCount).item()
+    return coverage

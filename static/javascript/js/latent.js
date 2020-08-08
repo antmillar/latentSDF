@@ -4,7 +4,7 @@ document.querySelector("#yMin").value = latent_bounds[2]
 document.querySelector("#yMax").value = latent_bounds[3]
 document.querySelector("#height").value = height
 
-console.log(img_source)
+console.log(model_details)
 
 $(document).ready(init);
 
@@ -19,7 +19,7 @@ function init(jQuery) {
       {
         document.querySelector("#slices").value = globals.slices;
         document.querySelector("#modelHeight").value = globals.height;
-
+        document.querySelector("#modelTaper").value = document.querySelector("#taper").value
         document.querySelector("#btnGenerate").submit();
       }
     
