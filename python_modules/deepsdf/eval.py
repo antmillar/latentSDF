@@ -19,6 +19,7 @@ from skimage import measure
 import openmesh as om
 import pyvista as pv
 from collections import namedtuple
+import random
 
 #static
 cwd = os.getcwd()
@@ -192,7 +193,6 @@ def generateModel(sliceVectors, model, numSlices, taper):
     endLayer = torch.ones(res, res)
     #add closing slice to first layer 
     slices.append(endLayer)
-    cores.append(endLayer)
     # add = 0.0
 
     #clamp value
@@ -206,8 +206,55 @@ def generateModel(sliceVectors, model, numSlices, taper):
         sdf, coverage = createSlice(pts, torch.tensor(vector))
         coverages.append(coverage)
 
-        ##need to correct for values changing as slices are added in 3d
         slices.append(sdf.detach().cpu())
+
+    #need to adjust 2d slices so the distances are accurate in 3d too
+
+    gridDistanceWidth = 4.0 #because the max inside and outside is 1 and -1, 4 = 1 + 1 - - 1 - - 1
+    cellSize = gridDistanceWidth / res
+    #maybe ignore first layer
+    for myIndex, mySlice in enumerate(slices):
+      for otherIndex, otherSlice in enumerate(slices):
+
+        #rescaling because performing sqrt later on small numbers otherwise .. underflow
+        rescale = 1000
+        baseSlice = mySlice * rescale
+
+        s = otherSlice * rescale
+        # print(f"layers to search{torch.min(s) / cellSize}")
+        dist = abs(otherIndex - myIndex)
+
+        distancesViaNewLayer = np.square(s) + np.power(dist * rescale * cellSize, 2) 
+        insideMask = mySlice < 0.0
+        outsideMask = np.invert(insideMask)
+        #compare with euclidean square dist via new layer
+        diff = np.multiply(baseSlice,baseSlice) - distancesViaNewLayer
+
+        #if diff greater than zero potential replacement
+        mask = diff > 0
+        mask2 = diff <= 0
+
+        diffsToKeep = np.multiply(mask,  distancesViaNewLayer)
+        diffsToKeep = np.multiply(diffsToKeep, insideMask)
+        # print(torch.sum(diffsToKeep > 0))
+        diffsToKeep = np.sqrt(diffsToKeep)
+        diffsToKeep /= rescale
+
+
+
+        diffsToKeep2 = np.multiply(mask2,  distancesViaNewLayer)
+        diffsToKeep2 = np.multiply(diffsToKeep2, outsideMask)
+        diffsToKeep2 = np.sqrt(diffsToKeep2)
+        diffsToKeep2 /= rescale
+        
+        diffsmask = diffsToKeep == 0
+        diffsmask2 = diffsToKeep2 == 0
+
+        finalmask = diffsmask == diffsmask2
+
+
+        mySlice = diffsToKeep + diffsToKeep2 + np.multiply(finalmask, mySlice)
+        # print(np.unique(mySlice))
 
 
     #tapering
@@ -216,11 +263,7 @@ def generateModel(sliceVectors, model, numSlices, taper):
         shrinkage = 1.0 / (slices_to_taper *slices_to_taper * slices_to_taper)
         slices.append(slices[-slices_to_taper + i].detach().cpu() + shrinkage * i*i*i)
 
-  
-    #create cores
-    for sdf in slices:
-        core = sdf + 0.4
-        cores.append(core.detach().cpu())
+
 
     #add closing slice to last layer
     slices.append(endLayer)
@@ -233,19 +276,11 @@ def generateModel(sliceVectors, model, numSlices, taper):
     ground_floor_min_coords = torch.nonzero(ground_floor == torch.min(ground_floor))
     
     stacked = np.stack(slices)
-    core_diameter = 10
-    core_center = np.array([25, 25])
-    circle = Circle(np.array([res//2, res//2]), core_diameter)
-    square = Box(core_diameter, core_diameter, core_center)
-    core = [52 * square.field.reshape(res, res)]
-    core = np.stack(core)
-
-    intersection = np.maximum(core * -1, stacked)
-    # stacked = intersection
 
     #generate the isocontours
     contours = []
     floors = []
+    floor_labels = []
     floor_height = 2
     samples = 100
     contour_every = 3
@@ -253,7 +288,7 @@ def generateModel(sliceVectors, model, numSlices, taper):
     level = 0.0
 
     ##funny indexing due to extra ends added to close form
-    for idx, s in enumerate(slices[1:-2:floor_every]):
+    for idx, s in enumerate(slices[1:-1:floor_every]):
         
         # level = -idx * taper/len(slices)
 
@@ -261,20 +296,29 @@ def generateModel(sliceVectors, model, numSlices, taper):
         if(idx > 0 and len(floors[idx - 1]) > 0):
             start_point = floors[idx - 1][0][0][:2] #previous layer first coordinate
             # slice_contours = extractContours(s, samples, level)
-            floor_contours = extractContours(s, samples, level, start_point)
+            floor_contours, labels = extractContours(s, samples, level, start_point)
 
         else:
-            floor_contours = extractContours(s, samples, level)
+            floor_contours, labels = extractContours(s, samples, level)
 
         a = []
         for floor in floor_contours:
+
+
             test = np.c_[floor, idx * floor_every * np.ones((floor.shape[0], 1))]
             test[:,2] += 1 #subtract one for the extra base plane
             test[:,2]*= floor_height #need to scale up the height
+            test[:,0] -= 25.0
+            test[:,1] -= 25.0
             test = test.tolist()
+    
             a.append(test)# add extra column for height
 
         floors.append(a)
+        floor_labels.append(labels)
+
+
+    print(labels)
 
     #create vertical contours
     ySlices = []
@@ -288,10 +332,10 @@ def generateModel(sliceVectors, model, numSlices, taper):
         if(idx > 0 and len(contours[idx - 1]) > 0):
             start_point = contours[idx - 1][0][0][:2] #previous layer first coordinate
             # slice_contours = extractContours(s, samples, level)
-            slice_contours = extractContours(s, samples, level, start_point)
+            slice_contours, _ = extractContours(s, samples, level, start_point)
 
         else:
-            slice_contours = extractContours(s, samples, level)
+            slice_contours, _ = extractContours(s, samples, level)
 
         a = []
         for contour in slice_contours:
@@ -302,6 +346,8 @@ def generateModel(sliceVectors, model, numSlices, taper):
 
               test[:,[0, 2]] = test[:,[2, 0]]
               test[:,2]*= floor_height #need to scale up the height
+              test[:,0] -= 25.0
+              test[:,1] -= 25.0 
               test = test.tolist()
               a.append(test)
 
@@ -309,6 +355,226 @@ def generateModel(sliceVectors, model, numSlices, taper):
 
 
 
+    lblCounts = [len(np.unique(lbl)) for lbl in floor_labels]
+    maxlbls  = max(lblCounts)
+
+    lvlstocheck = [i for i, x in enumerate(lblCounts) if x == maxlbls]
+
+    def most_frequent_label(List): 
+        labels = set(List)
+        labels.remove(0) #don't want to include outside space
+        from collections import Counter
+        print(Counter(List))
+        return max(labels, key = List.count) 
+      
+    #if maxlbls level, find most frequent element and how many there are
+
+    #get most frequent contour label
+    most_freq = [most_frequent_label(floor_labels[level].flatten().tolist()) for level in lvlstocheck]
+    print(most_freq)
+
+    #get how many of these there are
+    occurences = [np.sum(floor_labels[level] == a) for level, a in zip(lvlstocheck, most_freq)]
+    print(occurences)
+
+    #find the level with the smallest biggest contour
+    levelwithsmallestbiggestcontour = lvlstocheck[np.argmin(occurences)]
+    print(levelwithsmallestbiggestcontour)
+
+    #mask using this label and get value of lowest element in contour
+    mask = floor_labels[levelwithsmallestbiggestcontour] == most_freq[lvlstocheck.index(levelwithsmallestbiggestcontour)]
+   
+    #get just the negative values
+    vals = np.multiply(slices[levelwithsmallestbiggestcontour + 1].detach().numpy(), mask)
+    print(np.min(vals)) 
+    
+    vals = vals.transpose()
+
+
+
+
+    def get_vertical_outliers(x, y):
+      '''
+      Checks how many points lie outside of an sdf in this vertical cell
+      '''
+
+      axis = [s.numpy().transpose()[x, y] for s in slices[1:-1]]
+
+      #count the number of positives in the core central axis
+      positives = len([val for val in axis if val >= 0])
+
+      print("points outside surface : ", positives)
+
+      return positives
+
+
+
+    def find_core_center(vals):
+
+      #get the negative values
+      potentialVals = list(np.unique(vals))
+
+      #ensure boundary not in choices
+      potentialVals.remove(0)
+
+      num_samples = min(10, len(potentialVals))
+      valsChosen = random.sample(potentialVals, num_samples)
+      valsChosen.append(np.min(vals))
+
+      print("random selection" , valsChosen)
+      pos = []
+
+      for choice in valsChosen:
+        c = np.where(vals == choice)
+        x = c[0][0]
+        y = c[1][0]
+
+        pos.append(get_vertical_outliers(x, y))
+
+
+      minima = np.where(np.array(pos) == min(pos))[0]
+      print("minima : ", minima)
+
+      best_val = min([valsChosen[idx] for idx in minima])
+      print("best val", best_val)
+
+
+      #find in index of lowest element in contour
+
+      c = np.where(vals == np.min(vals))
+      print("core center using min sdf value : ", np.array([c[1][0], c[0][0]]))
+
+      c = np.where(vals == best_val)
+      print("core center after optimising with random search : ", np.array([c[1][0], c[0][0]]))
+
+      core_center = np.array([c[1][0], c[0][0]])
+      return core_center
+
+
+    # core_center = find_core_center(vals)
+
+    minCore = 5
+    core_diameter = minCore
+    # print("core_center : ", core_center)
+
+    # square = Box(core_diameter, core_diameter, core_center)
+
+    # cores  = [square.field.reshape(res, res) for i in range(numSlices )]
+
+
+
+    #get all contours for the level selected
+    core_centers = []
+
+    # get number of contours in this floor
+    level_contours = np.unique(floor_labels[levelwithsmallestbiggestcontour])
+
+    for i in range(1, len(level_contours) ):
+
+      mask = floor_labels[levelwithsmallestbiggestcontour] == i
+
+      vals = np.multiply(slices[levelwithsmallestbiggestcontour + 1].detach().numpy(), mask)
+      print(np.min(vals)) 
+      
+      vals = vals.transpose()
+
+      core_center = find_core_center(vals)
+
+      square = Box(core_diameter, core_diameter, core_center)
+
+      cores  = [square.field.reshape(res, res) for i in range(numSlices)]
+
+
+      core_centers.append(cores)
+
+    
+    intersection = np.minimum.reduce([core for core in core_centers])
+    cores = intersection
+
+
+    # mask2 = vals < 0
+    # mask3 = vals < -0.2
+
+
+    # from PIL import Image
+    # im = Image.fromarray(mask2.astype(np.int32) * 255).convert('L')
+    # im2 = Image.fromarray(mask3.astype(np.int32) * 255).convert('L')
+
+    # im.save("your_file2.png")
+    # im2.save("your_file3.png")
+
+
+
+
+    # circle = Circle(np.array([res//2, res//2]), core_diameter)
+    # circle = Circle(core_center, core_diameter)
+
+
+    # square = Box(core_diameter, core_diameter, core_center)
+
+    # cores  = [square.field.reshape(res, res) for i in range(numSlices)]
+
+      # [52 * circle.field.reshape(res, res)]
+    # core = np.stack(core)
+
+    # intersection = np.maximum(core * -1, stacked)
+    # stacked = intersection
+    #find the level with the lowest how many
+
+    #use this level as core level
+
+
+
+    #single core, biggest contour
+    # for sdf, lbl in zip(slices[1:-1], floor_labels):
+
+
+
+    # #create cores
+    # for sdf, lbl in zip(slices[1:-1], floor_labels):
+
+    #     core = sdf.detach().cpu().clone()
+    #     num_labels = len(np.unique(lbl))
+    #     # print(num_labels)
+    #     minDistance = torch.min(sdf)
+    #     maxDistance = torch.max(sdf)
+    #     targetMin = -0.1
+
+#         for i in range(1, num_labels):
+#         #0th group is outside, so don't change for now
+
+
+#           group = lbl == i
+#           # inv = np.invert(group)
+          
+#           group_min = np.min(np.multiply(group, core).cpu().detach().numpy())  
+#           # minDistance = torch.min(sdf)
+#           minDistance = group_min
+#           maxDistance = torch.max(sdf)
+#           # print(i, minDistance, maxDistance)
+# #  abs(minDistance - targetMin)
+#           max_bump = max(0, (targetMin - group_min))
+#           print(max_bump)
+#           # max_bump = i * 0.08
+#           # print(max_bump - 0.15)
+#           # temp = core + 0.15
+#           max_bump = np.round(max_bump, 1)
+#           max_bump = min(0.20, max_bump)
+#           # group_bumped = np.multiply(group, temp)  + np.multiply(inv, core)
+#           core += group * max_bump
+#           # core = group_bumped
+#           # coreScale = 0.5
+#           # core = sdf + coreScale * abs(minDistance)
+#           # core[core < -0.2] = -0.2
+#           # core = sdf + abs(minDistance - targetMin)
+#           # print(torch.min(core))
+        
+#         # group = lbl == 0
+        
+#         # core += group * max_bump
+#         cores.append(core)
+
+        
     # newIdx = len(contours)
     # xSlices = []
     # for i in range(stacked.shape[2]):
@@ -465,7 +731,9 @@ def generateModel(sliceVectors, model, numSlices, taper):
 
     # #get the 0 iso surface
     verts, faces = mcubes.marching_cubes(stacked, 0)
-    vertsCore, facesCore = mcubes.marching_cubes(np.stack(cores), 0)
+
+    stackedCores = np.stack(cores)
+    vertsCore, facesCore = mcubes.marching_cubes(stackedCores, 0)
 
     # #normalize verts to 50
     verts[:,1:] /= (res / 50)
@@ -474,9 +742,14 @@ def generateModel(sliceVectors, model, numSlices, taper):
     # print(verts.shape)
     verts[:,0] -= 1
     verts[:,0] *= floor_height
+    verts[:,1] -= 25.0 #translate to threejs space
+    verts[:,2] -= 25.0
 
-    vertsCore[:,0] -= 1
+    # vertsCore[:,0] -= 1
     vertsCore[:,0] *= floor_height
+    vertsCore[:,1] -= 25.0 #translate to threejs space
+    vertsCore[:,2] -= 25.0
+
 
     new_arr = np.ones((faces.shape[0], faces.shape[1] + 1), dtype=np.int32) * 3
     new_arr[:,1:] = faces
@@ -526,6 +799,8 @@ def extractContours(s, num_samples, level = 0.0, start_point = None):
 
   # Find contours at a constant value of 0.0
   contours = measure.find_contours(s, level)
+  s_binary = s < 0
+  labels = measure.label(s_binary)
   startIndex = 0 
 
 
@@ -537,11 +812,12 @@ def extractContours(s, num_samples, level = 0.0, start_point = None):
   sampled_contours = []
 
   if(len(contours) == 0):
-      return sampled_contours
+      return sampled_contours, labels
 
   contour_samples = num_samples#//len(contours)
 
   for contour in contours:
+
 
     if(type(start_point) is np.ndarray):
       startIndex = getIndex(contour, start_point)
@@ -555,11 +831,10 @@ def extractContours(s, num_samples, level = 0.0, start_point = None):
     sampled_contour = contour[::stepSize]
     # sampled_contour = sampled_contour[:contour_samples ] #bit hacky
     sampled_contour = np.round(sampled_contour, 0)
+
     sampled_contours.append(sampled_contour)
 
-  return sampled_contours
-
-
+  return sampled_contours, labels
 
 
 class Shape():
@@ -584,8 +859,8 @@ class Shape():
     self.end = end
     self.steps = steps
     self.pts = np.float_([[x, y] 
-                    for y in  np.linspace(start, end, steps) 
-                    for x in np.linspace(start, end, steps)])
+                    for x in  np.linspace(start, end, steps) 
+                    for y in np.linspace(start, end, steps)])
 
     self.field = np.float_(list(map(self.sdf, self.pts))).reshape(steps*steps, 1)
 

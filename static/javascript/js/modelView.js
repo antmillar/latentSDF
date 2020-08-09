@@ -63,14 +63,15 @@ else
   loader2.load(loc, function(obj){
 
     let matCore = new THREE.MeshPhysicalMaterial( {
-      color: 0x333333,
-      opacity: 1.0,
+      color: 0x111111,
+      opacity:0.75,
       side: THREE.DoubleSide,
       transparent: true,
     } );
 
     let model = obj.children[0];
     model.material = matCore;
+    //move mesh to origin
 
     model.scale.set(0.1,0.1,0.1);
     model.rotation.z = Math.PI / 2; 
@@ -80,13 +81,14 @@ else
     let bbox = new THREE.Box3().setFromObject(model);
 
     bbox.getCenter(center);
+
+    //TODO make this dynamic!
     
-    //move mesh to origin
-    model.translateZ(-center.z);
-    model.translateY(center.x);
+    // model.translateZ(-25.0 * 0.1);
+    // model.translateY(-25.0 * 0.1);
 
     scene.add(model);
-    console.log("aded")
+    console.log(model)
 
   })
   let loader = new OBJLoader2();
@@ -98,7 +100,7 @@ else
     let matGlass = new THREE.MeshPhysicalMaterial( {
       // color: 0xA4CBD4,
       color: 0x444444,
-      opacity: 0.25,
+      opacity: 0.5,
       side: THREE.DoubleSide,
       transparent: true,
       // reflectivity: 0.5,
@@ -107,7 +109,7 @@ else
     let matGlass2 = new THREE.MeshPhysicalMaterial( {
       // color: 0xA4CBD4,
       color: 0x222222,
-      opacity: 0.25,
+      opacity: 0.5,
       transparent: true,
     } );
 
@@ -136,8 +138,8 @@ else
     bbox.getCenter(center);
     
     //move mesh to origin
-    model.translateZ(-center.z);
-    model.translateY(center.x);
+    // model.translateZ(-center.z);
+    // model.translateY(center.x);
     var floorColors = [new THREE.Color(0x444444),new THREE.Color(0x222222), new THREE.Color(0x111111), new THREE.Color(0x333333) ]
 
     console.log(floors)
@@ -181,19 +183,19 @@ else
         floor.scale.set(0.1,0.1,0.1);
         floor.rotation.x = Math.PI / 2; 
         floor.rotation.y = Math.PI; 
-        floor.translateX(center.x);
-        floor.translateY(-center.z);
+        // floor.translateX(center.x);
+        // floor.translateY(-center.z);/
         floor.translateZ(points[0].z / 10.0);
   
         edge.scale.set(0.1,0.1,0.1);
         edge.rotation.x = Math.PI / 2; 
         edge.rotation.y = Math.PI; 
-        edge.translateX(center.x);
-        edge.translateY(-center.z);
+        // edge.translateX(center.x);
+        // edge.translateY(-center.z);
         edge.translateZ(points[0].z / 10.0);
   
   
-        scene.add( floor,edge );
+        scene.add( model, edge );
       }
 
     }
@@ -217,13 +219,13 @@ else
       contourLine.scale.set(0.1,0.1,0.1);
       contourLine.rotation.x = Math.PI / 2; 
       contourLine.rotation.y = Math.PI; 
-      contourLine.translateX(center.x);
-      contourLine.translateY(-center.z);
-
+      // contourLine.translateX(center.x);
+      // contourLine.translateY(-center.z);
+// 
       scene.add(contourLine)
   
     }
-    scene.add(  ground);
+    scene.add(  model, ground);
     animate();
   });
 

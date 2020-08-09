@@ -44,7 +44,7 @@ coverage = False
 latent_loaded = False
 contours = False
 floors = False
-model_details = False
+model_details = Bounds(1,2,3,4)
 
 ##TODO
 
