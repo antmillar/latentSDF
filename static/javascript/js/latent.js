@@ -8,6 +8,11 @@ console.log(model_details)
 
 $(document).ready(init);
 
+document.querySelector("#file").onchange = function() {
+
+  document.querySelector("#loadData").submit();
+};
+
 function init(jQuery) {
   $("#gen").on('click', (e) => {
 

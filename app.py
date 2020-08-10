@@ -9,6 +9,7 @@ import threading
 import time
 import numpy as np
 from collections import namedtuple
+import zipfile
 
 # #local module imports
 import python_modules.deepsdf.eval as eval
@@ -28,23 +29,26 @@ app.config['SEND_FILE_MAX_AGE_DEFAULT'] = 0
 #relative paths
 cwd = os.getcwd()
 output_path = cwd + '/static/img/output'
-load_path = cwd + '/static/models/load'
+model_path = cwd + '/static/models/torch/'
 input_path = cwd + '/static/models/inputs'
 output_path = cwd + '/static/models/outputs'
 mesh_path = cwd + '/static/models/meshes'
 
+Details = namedtuple("Details", ["floors", "taper", "maxCoverage", "minCoverage"])
 Bounds = namedtuple('Bounds', ['xMin', 'xMax', 'yMin', 'yMax'])
 latent_bounds = Bounds(-1.5, 1.0, -1.0, 1.0)
 img_source  = '/static/img/latent_grid.png'
 img_source_hm  = '/static/img/coverage_heatmap.png'
 
 active_model = ''
-height = 100
+torch_model =  '/home/anthony/repos/latentSDF/static/models/torch/default.pth'
+height = 50
 coverage = False
 latent_loaded = False
 contours = False
 floors = False
-model_details = Bounds(1,2,3,4)
+model_details = Details(0,0,0,0)
+latents = np.empty([0])
 
 ##TODO
 
@@ -70,20 +74,57 @@ def index():
 def modelView():
     return render_template('modelView.html')
 
+@app.route('/uploader', methods = ['GET', 'POST'])
+def upload_file():
+   if request.method == 'POST': 
+        f = request.files['file']
+
+        #load zip file and extract latents and model
+        if(f.filename[-4:].lower() == ".zip"):
+
+            fileToCopy = secure_filename(f.filename)
+            fn = os.path.join(model_path, fileToCopy)
+            f.save(fn)
+            print(f"file : {f.filename} uploaded successfully")
+
+            with zipfile.ZipFile(fn, 'r') as zip_ref:
+                zip_ref.extractall(model_path)
+            
+            #load the model from the zip
+            global torch_model
+            torch_model = model_path + "model.pth"
+
+            #load the latents from the zip
+            global latents
+            float_formatter = "{:.2f}".format
+            np.set_printoptions(formatter={'float_kind':float_formatter})
+            latents = np.around(np.load("seeds.npy") * 1.000, decimals = 2)
+
+            print(latents)
+            latent_space.updateLatent(latent_bounds, torch_model, latents)
+
+        else:
+
+            print("Invalid File Type")
+        
+        return render_template('main.html', latent_bounds = list(latent_bounds), img_source = img_source, img_source_hm = img_source_hm, active_model = active_model, height = height, coverage = coverage, contours = contours, floors = floors, model_details = model_details, latents = latents )
+
+
+
 #base route
 @app.route('/main',  methods = ["GET", "POST"])
 def main():
 
+    print(latents)
     #on load create latent image 
     global latent_bounds, latent_loaded
     if(not latent_loaded):
         
-        latent_space.updateLatent(latent_bounds)
+        latent_space.updateLatent(latent_bounds, torch_model, latents)
         latent_loaded = True
         # return redirect(url_for('main'))
-
-    if request.method == "POST":
-
+    if request.method == 'POST': 
+ 
         #generate 3d model
         if(request.form.get("generateSlices")):
 
@@ -104,7 +145,7 @@ def main():
 
             torch.cuda.empty_cache()
             global contours, floors, model_details
-            model_name, contours, floors, model_details =  eval.evaluate(coords, height, taper)
+            model_name, contours, floors, model_details =  eval.evaluate(coords, height, taper, torch_model)
             global active_model
             active_model = '/static/models/outputs/' + model_name
 
@@ -112,7 +153,7 @@ def main():
         if(request.form.get("updateLatent")):
 
             latent_bounds = Bounds(float(request.form.get("xMin")), float(request.form.get("xMax")), float(request.form.get("yMin")), float(request.form.get("yMax")))
-            latent_space.updateLatent(latent_bounds)
+            latent_space.updateLatent(latent_bounds, torch_model, latents)
 
         #update the latent space
         if(request.form.get("scoverage")):
@@ -124,10 +165,10 @@ def main():
                 cov = False
             print(cov)
 
-            latent_space.updateLatent(latent_bounds, cov)
+            latent_space.updateLatent(latent_bounds, torch_model, latents, cov)
             
 
-    return render_template('main.html', latent_bounds = list(latent_bounds), img_source = img_source, img_source_hm = img_source_hm, active_model = active_model, height = height, coverage = coverage, contours = contours, floors = floors, model_details = model_details )
+    return render_template('main.html', latent_bounds = list(latent_bounds), img_source = img_source, img_source_hm = img_source_hm, active_model = active_model, height = height, coverage = coverage, contours = contours, floors = floors, model_details = model_details, latents = latents )
 
 # #route to hold the latest status 
 # @app.route('/progress/<int:thread_id>')
@@ -149,12 +190,12 @@ def main():
 
 #             fileToCopy = secure_filename(f.filename)
 
-#             f.save(os.path.join(load_path, fileToCopy))
+#             f.save(os.path.join(model_path, fileToCopy))
 
-#             print(load_path + "/" + fileToCopy)
+#             print(model_path + "/" + fileToCopy)
 
 #             statusText = "subsampling cloud.."
-#             pcd = preprocess_utils.down_sample(load_path, fileToCopy, statusText)
+#             pcd = preprocess_utils.down_sample(model_path, fileToCopy, statusText)
 
 #             statusText = "removing outliers and normalizing..."
 #             preprocess_utils.standardise(pcd, fileToCopy, input_path)

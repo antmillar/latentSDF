@@ -6,13 +6,7 @@ let scene, camera, renderer, canvas;
 
 canvas = document.querySelector('#c');
 
-if(active_model == "")
-{
-  canvas.style.display="none";
-}
 
-else
-{  
   //scene
   scene = new THREE.Scene();
   scene.background = new THREE.Color(0x888888);
@@ -55,12 +49,20 @@ else
   scene.add(dirLight2);
 
   renderer = new THREE.WebGLRenderer({antialias:true, canvas : canvas});
-  // renderer.setSize(window.innerWidth / 4,window.innerHeight / 4);
-  // document.body.appendChild(renderer.domElement);
 
-  let loader2 = new OBJLoader2();
-  let loc = active_model.slice(0, -23) + "core_" + active_model.slice(-23)
-  loader2.load(loc, function(obj){
+
+  if(active_model == "") 
+  {
+    
+  }
+  else
+  {
+
+  // LOAD THE CORE OBJ FILE
+  let coreLoader = new OBJLoader2();
+  let fn_core = active_model.slice(0, -23) + "core_" + active_model.slice(-23)
+  
+  coreLoader.load(fn_core, function(obj){
 
     let matCore = new THREE.MeshPhysicalMaterial( {
       color: 0x111111,
@@ -70,36 +72,25 @@ else
     } );
 
     let model = obj.children[0];
+    console.log("core model : " , model)
     model.material = matCore;
-    //move mesh to origin
 
     model.scale.set(0.1,0.1,0.1);
     model.rotation.z = Math.PI / 2; 
 
-    //translating
-    let center = new THREE.Vector3();
-    let bbox = new THREE.Box3().setFromObject(model);
-
-    bbox.getCenter(center);
-
-    //TODO make this dynamic!
-    
-    // model.translateZ(-25.0 * 0.1);
-    // model.translateY(-25.0 * 0.1);
-
     scene.add(model);
-    console.log(model)
 
   })
+
+  // LOAD THE BUILDING, FLOORS and CONTOURS
   let loader = new OBJLoader2();
-  // console.log(window.globals.active_model)
   loader.load(active_model, function(obj){
 
     //materials
 
     let matGlass = new THREE.MeshPhysicalMaterial( {
       // color: 0xA4CBD4,
-      color: 0x444444,
+      color: 0x666666,
       opacity: 0.5,
       side: THREE.DoubleSide,
       transparent: true,
@@ -118,6 +109,8 @@ else
 
     //geometry
     let model = obj.children[0];
+    console.log("bldg model : " , model)
+
     model.geometry.computeVertexNormals();
     model.material = matGlass2
 
@@ -128,113 +121,80 @@ else
     model.scale.set(0.1,0.1,0.1);
     model.rotation.z = Math.PI / 2; 
 
-
     ground.rotation.x = -Math.PI / 2; 
 
-    //translating
-    let center = new THREE.Vector3();
-    let bbox = new THREE.Box3().setFromObject(model);
-
-    bbox.getCenter(center);
-    
-    //move mesh to origin
-    // model.translateZ(-center.z);
-    // model.translateY(center.x);
-    var floorColors = [new THREE.Color(0x444444),new THREE.Color(0x222222), new THREE.Color(0x111111), new THREE.Color(0x333333) ]
-
-    console.log(floors)
-    // let contour_array = [];
 
     //create floors in building
     for(let i = 0; i < floors.length; i++)
     {
-
-
       //check if the floor contains more than one contour
       let floorContourCount = floors[i].length
       for(let j = 0; j < floorContourCount; j++)
       {      
-        var points = [];
+        let points = [];
         for(let k = 0; k < floors[i][j].length; k++)
        {
          //get coordinates
           points.push(new THREE.Vector3(floors[i][j][k][0],floors[i][j][k][1],floors[i][j][k][2]))
-
-
         }
-          // let col = floorColors[j]
-          // console.log(col)
-          // matGlass = new THREE.MeshPhysicalMaterial( {
-          //   color: col,
-          //   opacity: 0.25,
-          //   side: THREE.DoubleSide,
-          //   transparent: true,
-          // } );
 
-        var floorOutline = new THREE.Shape(points);
-        var extrudeSettings = { depth:0.1, bevelEnabled: false};
+        let floorOutline = new THREE.Shape(points);
+        let extrudeSettings = { depth:0.1, bevelEnabled: false};
   
-        var geometryFloor = new THREE.ExtrudeBufferGeometry( floorOutline, extrudeSettings );
-        let m = new THREE.LineBasicMaterial( { color: 0x222222, linewidth: 0.5 } )
-        var edges = new THREE.EdgesGeometry( geometryFloor,  );
-        var edge = new THREE.LineSegments( edges,m );
-        var floor = new THREE.Mesh( geometryFloor, matGlass );
+        let geometryFloor = new THREE.ExtrudeBufferGeometry( floorOutline, extrudeSettings );
+        let matEdge = new THREE.LineBasicMaterial( { color: 0x222222, linewidth: 0.5 } )
+        let edges = new THREE.EdgesGeometry( geometryFloor);
+        let edge = new THREE.LineSegments( edges, matEdge );
+        let floor = new THREE.Mesh( geometryFloor, matGlass );
   
         floor.scale.set(0.1,0.1,0.1);
         floor.rotation.x = Math.PI / 2; 
         floor.rotation.y = Math.PI; 
-        // floor.translateX(center.x);
-        // floor.translateY(-center.z);/
         floor.translateZ(points[0].z / 10.0);
   
         edge.scale.set(0.1,0.1,0.1);
         edge.rotation.x = Math.PI / 2; 
         edge.rotation.y = Math.PI; 
-        // edge.translateX(center.x);
-        // edge.translateY(-center.z);
         edge.translateZ(points[0].z / 10.0);
-  
   
         scene.add( model, edge );
       }
-
     }
 
     //create vertical contours in building
     for(let j = 0; j < contours.length; j++)
     {
       var points = [];
-
+      
+      // populate contour points
       for(let i = 0; i < contours[j][0].length; i++)
       {
         points.push(new THREE.Vector3(contours[j][0][i][0],contours[j][0][i][1],contours[j][0][i][2]))
-        
       }
 
       points.push(points[0]) //close the loop
-      var curve = new THREE.CatmullRomCurve3(points)
-      var curvePts = curve.getPoints( 50 );
+      let curve = new THREE.CatmullRomCurve3(points)
+      let curvePts = curve.getPoints( 50 );
       let geometryContour = new THREE.BufferGeometry().setFromPoints( curvePts );
       let contourLine = new THREE.Line( geometryContour, matContours );
       contourLine.scale.set(0.1,0.1,0.1);
       contourLine.rotation.x = Math.PI / 2; 
       contourLine.rotation.y = Math.PI; 
-      // contourLine.translateX(center.x);
-      // contourLine.translateY(-center.z);
-// 
+
       scene.add(contourLine)
-  
     }
-    scene.add(  model, ground);
-    animate();
+
+    scene.add(model, ground);
   });
-
-
+  
 }
+
+animate();
+
+
 function animate() {
 
   renderer.render(scene,camera);
   requestAnimationFrame(animate);
 
 }
-

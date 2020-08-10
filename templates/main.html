@@ -38,12 +38,13 @@
 <body>
 
 
+
 <!-- SEED DESIGN INFO -->
   <div class="row " >
   <div class="col-md-3 text-center" style=" margin-top: 100px">
-    <h6>Seed Designs</h6>
-    <br>
-    <div class = "row ">    
+    <h6>Data Input</h6>
+    <!-- <br> -->
+    <!-- <div class = "row ">    
       <div class = "col-3" > 
         <figure class = "text-center">
          <img src ="static/img/floor1.png"  class="figure-img img-fluid"> 
@@ -72,8 +73,42 @@
          </figure>
        </div>
 
-   </div>
+   </div> -->
 
+
+  <!-- LOAD MODEL AND VECTORS -->
+  <div class="row" >
+      <div class="col " >
+ 
+          <form id = "loadData" action = "/uploader" method = "POST" enctype="multipart/form-data">
+            <div class="form-group ">
+              <label for="loadForm">Model</label>
+              <input type="file" name="file" id="file">
+            </div>
+          </form>
+      </div>
+  </div>
+
+  <h6>Seed Designs</h6>
+
+    <!-- MODEL DETAILS -->
+    <div class="text-center" style="margin-top: 20px">
+
+      {% for value in latents %}
+      <div class = "row">
+        <div class = "col">
+          <small>{{value}}</small>
+        </div>
+        <div class = "col">
+          <small></small>
+        </div>
+
+      </div>
+      {% endfor %}
+  
+    </div>
+
+    
 <!-- LATENT SPACE INPUTS -->
     <form id = "myForm" action="" method="POST" style="width: 80%; margin:auto; margin-top: 50px;" class= "text-center">
       <h6>Latent Space</h6>

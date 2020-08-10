@@ -47,7 +47,7 @@ class LatentGrid():
 
 grid = LatentGrid(10)
 
-def updateLatent(latentBounds, coverageThreshold = False):
+def updateLatent(latentBounds,  model_path, latents, coverageThreshold = False):
     """
     Updates the Latent Space Image and Related Data
 
@@ -61,14 +61,14 @@ def updateLatent(latentBounds, coverageThreshold = False):
 
     #should have model globaL?
     print("loading model...")
+    # model_path = os.path.join(dir_model, "8floorplans.pth")
+    # model_path = os.path.join(dir_model, "8floorplans_selflearn.pth")
 
-    model_path = os.path.join(dir_model, "8floorplans.pth")
-    model_path = os.path.join(dir_model, "8floorplans_selflearn.pth")
 
     model = deepSDFCodedShape().to(device)
     model.load_state_dict(torch.load(model_path, map_location=device))
 
-    interpolate_grid(model, latentBounds, coverageThreshold)
+    interpolate_grid(model, latentBounds, latents, coverageThreshold)
 
 def check_bounds(latentBounds):
     
@@ -82,7 +82,7 @@ def check_bounds(latentBounds):
     print("bounds valid")
     
 @funcTimer
-def interpolate_grid(model, latentBounds, coverageThreshold, num = 10):
+def interpolate_grid(model, latentBounds, latents : np.array, coverageThreshold, num = 10):
     """Generates an image of the latent space containing seed and interpolated designs
 
     Args:
@@ -98,33 +98,26 @@ def interpolate_grid(model, latentBounds, coverageThreshold, num = 10):
     # fig.subplots_adjust(wspace=0, hspace=0)
     fig.tight_layout()
     
-    '''
-    tensor([[-1.6229, -0.2385],
-        [-0.5678,  0.5753],
-        [-0.6880, -0.6937],
-        [ 0.2650, -0.7491],
-        [ 1.0502,  0.3029],
-        [ 0.3500, -0.3302],
-        [ 0.5312,  0.9283],
-        [ 0.0736,  0.0258]], device='cuda:0', requires_grad=True)
-        '''
+    # #TODO need to make this dynamic
 
-    #TODO need to make this dynamic
-    seedLatents = [[0.0,0.0], [1.0, 0.0], [2.0, 0.0], [3.0, 0.0], [0.0, 1.0],  [1.0, 1.0], [2.0, 1.0], [3.0, 1.0]]
-    seedLatents = [[-1.6229, -0.2385],
-        [-0.5678,  0.5753],
-        [-0.6880, -0.6937],
-        [ 0.2650, -0.7491],
-        [ 1.0502,  0.3029],
-        [ 0.3500, -0.3302],
-        [ 0.5312,  0.9283],
-        [ 0.0736,  0.0258]]
+    latents = latents.tolist()
+
+    # latents = [[0.0,0.0], [1.0, 0.0], [2.0, 0.0], [3.0, 0.0], [0.0, 1.0],  [1.0, 1.0], [2.0, 1.0], [3.0, 1.0]]
+    # latents = [[-1.6229, -0.2385],
+    #     [-0.5678,  0.5753],
+    #     [-0.6880, -0.6937],
+    #     [ 0.2650, -0.7491],
+    #     [ 1.0502,  0.3029],
+    #     [ 0.3500, -0.3302],
+    #     [ 0.5312,  0.9283],
+    #     [ 0.0736,  0.0258]]
+
     #axes
     xAx = np.linspace(latentBounds.xMin, latentBounds.xMax, num)
     yAx = np.linspace(latentBounds.yMin, latentBounds.yMax, num)
 
     #find the closest grid item to seed design
-    closestLatents = find_seeds(latentBounds, xAx, yAx, seedLatents)
+    closestLatents =  find_seeds(latentBounds, xAx, yAx, latents)
 
     for index, i in enumerate(xAx):
         for jindex, j in enumerate(yAx) :
@@ -138,11 +131,11 @@ def interpolate_grid(model, latentBounds, coverageThreshold, num = 10):
 
             if([i, j] in closestLatents):
                 #starts top left
-                axs[num -1 - jindex, index].imshow(im, cmap = "winter")
+                axs[num -1 - jindex, index].imshow(im, cmap = "copper")
 
-                # #if original show as copper, interpolated show as pink
-                if([i, j] in seedLatents):
-                    axs[num - 1 - jindex, index].imshow(im, cmap = "copper")
+                # # #if original show as copper, interpolated show as pink
+                # if([i, j] in latents):
+                #     axs[num - 1 - jindex, index].imshow(im, cmap = "copper")
 
             else:
                 # im = 255 - im #inverting
@@ -178,7 +171,7 @@ def interpolate_grid(model, latentBounds, coverageThreshold, num = 10):
             
     fig.savefig(os.path.join(dir_image, 'latent_grid.png'), transparent=True)
 
-def find_seeds(latentBounds, xAx, yAx, seedLatents):
+def find_seeds(latentBounds, xAx, yAx, latents):
 
     '''
     Finds the nearest point in the latent grid to the seed design, only if within the bounds to a certain tolerance.
@@ -198,7 +191,7 @@ def find_seeds(latentBounds, xAx, yAx, seedLatents):
 
     closestLatents = []
     #find the closest coordinates to the latent vector of the seed designs
-    for seed in seedLatents:
+    for seed in latents:
 
         #by default set the closest to seed itself
         closest = seed.copy()

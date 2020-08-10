@@ -24,9 +24,11 @@ import random
 #static
 cwd = os.getcwd()
 dir_image = cwd + '/static/img'
-dir_model = cwd + '/torchModels'
 dir_data = cwd + '/static/models'
 dir_output = cwd + '/static/models/outputs'
+model_path = cwd + '/static/models/torch'
+
+
 batch_size = 1
 device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
@@ -37,130 +39,18 @@ ptsSample = np.float_([[x, y]
 pts = torch.Tensor(ptsSample).to(device)
 
 #load a torch model and generate slices
-def evaluate(sliceVectors, height, taper):
+def evaluate(sliceVectors, height, taper, model_path):
  
     print("loading model...")
-    model_path = os.path.join(dir_model, "8floorplans.pth")
-    model_path = os.path.join(dir_model, "8floorplans_selflearn.pth")
-
+    # model_path = os.path.join(dir_model, "8floorplans.pth")
+    # model_path = os.path.join(dir_model, "8floorplans_selflearn.pth")
+    print(model_path)
 
     model = deepSDFCodedShape()#.cuda()
     model.load_state_dict(torch.load(model_path, map_location=device))
-    # res = 50
     latent = torch.tensor( [-2, 1]).to(device)
-    # print("labelling points...")
-    # pred = predict_label(model, dataloader)
-    
-    # print("saving PLY file...")
-    # save_to_PLY(fn, pred)
-    numSlices = 100
 
     return generateModel(sliceVectors, model, height, taper)
-
-
-
-def forward(model, coords, feats):
-    pred = []
-
-    coord_chunk, feat_chunk = torch.split(coords.squeeze(0), batch_size, 0), torch.split(feats.squeeze(0),batch_size, 0)
-    assert len(coord_chunk) == len(feat_chunk)
-    for coord, feat in zip(coord_chunk, feat_chunk):
-        output = model(torch.cat([coord, feat], dim=2))
-        pred.append(output)
-
-    pred = torch.cat(pred, dim=0) # (CK, N, C)
-    outputs = pred.max(2)[1]
-
-    return outputs
-
-#remove points duplicated in the dataset random sampling
-def filter_points(coords, pred):
-    assert coords.shape[0] == pred.shape[0]
-    print(f"pre filter point count : {coords.shape[0]}")
-
-    #hash the xyz coords as a string
-    coord_hash = [hash(str(coords[point_idx][0]) + str(coords[point_idx][1]) + str(coords[point_idx][2])) for point_idx in range(coords.shape[0])]
-
-    #remove dups
-    _, coord_ids = np.unique(np.array(coord_hash), return_index=True)
-
-    #filter
-    coord_filtered, pred_filtered = coords[coord_ids], pred[coord_ids]
-    
-    filtered = []
-
-    for point_idx in range(coord_filtered.shape[0]):
-        filtered.append(
-            [
-                coord_filtered[point_idx][0],
-                coord_filtered[point_idx][1],
-                coord_filtered[point_idx][2],
-                labelMap[pred_filtered[point_idx]][0],
-                labelMap[pred_filtered[point_idx]][1],
-                labelMap[pred_filtered[point_idx]][2]
-            ]
-        )
-
-    print(f"filtered point count : {len(filtered)}")
-    return np.array(filtered)
-
-
-def predict_label(model, dataloader : DataLoader):
-    output_coords, output_pred = [], []
-    print("predicting labels...")
-    count = 0
-
-
-    for data in dataloader:
-        # unpack
-
-        coords, feats, targets, weights, _ = data
-        coords, feats, targets, weights = coords.cuda(), feats.cuda(), targets.cuda(), weights.cuda()
-
-        # feed
-        pred = forward(model, coords, feats)
-
-        # dump
-        coords = coords.squeeze(0).view(-1, 3).cpu().numpy()
-        pred = pred.view(-1).cpu().numpy()
-        output_coords.append(coords)
-        output_pred.append(pred)
-        count+=1
-
-    print("filtering points...")
-    output_coords = np.concatenate(output_coords, axis=0)
-    output_pred = np.concatenate(output_pred, axis=0)
-
-    filtered = filter_points(output_coords, output_pred)
-   
-    return filtered
-
-def save_to_PLY(fn : str, pred):
-
-    #convert pred np array to list of tuples
-    points = list(map(tuple, pred))
-
-    points = np.array(
-        points,
-        dtype=[
-            ("x", np.dtype("float32")), 
-            ("y", np.dtype("float32")), 
-            ("z", np.dtype("float32")),
-            ("red", np.dtype("uint8")),
-            ("green", np.dtype("uint8")),
-            ("blue", np.dtype("uint8"))
-        ]
-    )
-
-    #convert to ply elements
-    plyData = PlyElement.describe(points, "vertex")
-    plyData = PlyData([plyData])
-
-    #save labelled model 
-    output_fn = Path(fn).stem + "_labels.ply"
-    plyData.write(os.path.join(dir_output, output_fn))
-    print("saved as " + output_fn)
-
 
 
 @funcTimer
