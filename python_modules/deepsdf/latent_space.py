@@ -98,19 +98,6 @@ def interpolate_grid(model, latentBounds, latents : np.array, coverageThreshold,
     # fig.subplots_adjust(wspace=0, hspace=0)
     fig.tight_layout()
     
-    # #TODO need to make this dynamic
-
-    latents = latents.tolist()
-
-    # latents = [[0.0,0.0], [1.0, 0.0], [2.0, 0.0], [3.0, 0.0], [0.0, 1.0],  [1.0, 1.0], [2.0, 1.0], [3.0, 1.0]]
-    # latents = [[-1.6229, -0.2385],
-    #     [-0.5678,  0.5753],
-    #     [-0.6880, -0.6937],
-    #     [ 0.2650, -0.7491],
-    #     [ 1.0502,  0.3029],
-    #     [ 0.3500, -0.3302],
-    #     [ 0.5312,  0.9283],
-    #     [ 0.0736,  0.0258]]
 
     #axes
     xAx = np.linspace(latentBounds.xMin, latentBounds.xMax, num)

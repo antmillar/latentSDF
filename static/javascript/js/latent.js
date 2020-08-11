@@ -28,7 +28,7 @@ function init(jQuery) {
         document.querySelector("#btnGenerate").submit();
       }
     
-});
+  });
 
 
   $('#height').on('input', function() {
@@ -49,4 +49,13 @@ function init(jQuery) {
   $('#coverage').on('input', function() {
     window.globals.coverage = document.querySelector("#coverage").value;
   });
-  }
+
+  $("#download").on('click', (e) => {
+
+  
+    document.querySelector("#downloadModel").value = 1;
+    document.querySelector("#btnDownload").submit();
+    
+});
+
+}

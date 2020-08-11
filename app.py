@@ -2,6 +2,7 @@
 from flask import Flask, render_template, request, redirect, url_for, send_from_directory
 from werkzeug.utils import secure_filename
 import os
+import glob
 import torch
 import json
 import random
@@ -49,6 +50,8 @@ contours = False
 floors = False
 model_details = Details(0,0,0,0)
 latents = np.empty([0])
+annotations = np.empty([0])
+
 
 ##TODO
 
@@ -76,7 +79,7 @@ def modelView():
 
 @app.route('/uploader', methods = ['GET', 'POST'])
 def upload_file():
-   if request.method == 'POST': 
+
         f = request.files['file']
 
         #load zip file and extract latents and model
@@ -95,31 +98,60 @@ def upload_file():
             torch_model = model_path + "model.pth"
 
             #load the latents from the zip
-            global latents
+            global annotations
             float_formatter = "{:.2f}".format
             np.set_printoptions(formatter={'float_kind':float_formatter})
-            latents = np.around(np.load("seeds.npy") * 1.000, decimals = 2)
+            annotations = np.load(model_path + "seeds.npy").astype(object) #object type as need to hold lists not just values
+            print(annotations)
+            
+            latents = [json.loads(latent) for latent, *_ in annotations[1:,:]] #skips first row as titles
+            
+            for i in range(1, annotations.shape[0]):
+                annotations[i, 0] = latents[i - 1] 
 
-            print(latents)
+            ##update bounds
+            #maybe I should strip out the logic for changing latent bounds from this initial population
+
+            minX = min(val[0] for val in latents)
+            maxX = max(val[0] for val in latents)
+            minY = min(val[1] for val in latents)
+            maxY = max(val[1] for val in latents)
+            
+            latent_bounds = Bounds(minX, maxX, minY, maxY)
             latent_space.updateLatent(latent_bounds, torch_model, latents)
 
         else:
 
             print("Invalid File Type")
         
-        return render_template('main.html', latent_bounds = list(latent_bounds), img_source = img_source, img_source_hm = img_source_hm, active_model = active_model, height = height, coverage = coverage, contours = contours, floors = floors, model_details = model_details, latents = latents )
+        return redirect(url_for('main', latent_bounds = list(latent_bounds), img_source = img_source, img_source_hm = img_source_hm, active_model = active_model, height = height, coverage = coverage, contours = contours, floors = floors, model_details = model_details, annotations = annotations))
+        # return render_template('main.html', latent_bounds = list(latent_bounds), img_source = img_source, img_source_hm = img_source_hm, active_model = active_model, height = height, coverage = coverage, contours = contours, floors = floors, model_details = model_details, annotations = annotations )
 
 
+@app.route('/downloader', methods = ['GET'])
+def download_file():
+
+    print(f"downloading {cwd + active_model}")
+
+    #open3d seems to always create an MTL file, can't figure out how to remove it. But the model should load fine without the MTL.
+    return send_from_directory(directory=output_path, filename=active_model[-23:] , as_attachment=True) #HACKAKCKAKCAKCKAKC
 
 #base route
 @app.route('/main',  methods = ["GET", "POST"])
 def main():
 
-    print(latents)
     #on load create latent image 
     global latent_bounds, latent_loaded
+
     if(not latent_loaded):
-        
+
+        #delete old models on restart
+        files = glob.glob(output_path + "/*")
+        for f in files:
+            
+            os.remove(f)
+            print(f"deleted - {f}")
+
         latent_space.updateLatent(latent_bounds, torch_model, latents)
         latent_loaded = True
         # return redirect(url_for('main'))
@@ -168,7 +200,10 @@ def main():
             latent_space.updateLatent(latent_bounds, torch_model, latents, cov)
             
 
-    return render_template('main.html', latent_bounds = list(latent_bounds), img_source = img_source, img_source_hm = img_source_hm, active_model = active_model, height = height, coverage = coverage, contours = contours, floors = floors, model_details = model_details, latents = latents )
+
+
+
+    return render_template('main.html', latent_bounds = list(latent_bounds), img_source = img_source, img_source_hm = img_source_hm, active_model = active_model, height = height, coverage = coverage, contours = contours, floors = floors, model_details = model_details, annotations = annotations )
 
 # #route to hold the latest status 
 # @app.route('/progress/<int:thread_id>')

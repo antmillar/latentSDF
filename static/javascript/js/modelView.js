@@ -1,8 +1,10 @@
 import * as THREE from 'https://threejsfundamentals.org/threejs/resources/threejs/r113/build/three.module.js';
 import {OrbitControls} from 'https://threejsfundamentals.org/threejs/resources/threejs/r113/examples/jsm/controls/OrbitControls.js';
 import {OBJLoader2} from 'https://threejsfundamentals.org/threejs/resources/threejs/r113/examples/jsm/loaders/OBJLoader2.js';
+import {OBJExporter} from 'https://threejsfundamentals.org/threejs/resources/threejs/r113/examples/jsm/exporters/OBJExporter.js';
 
-let scene, camera, renderer, canvas;
+
+var scene, camera, renderer, canvas;
 
 canvas = document.querySelector('#c');
 
@@ -90,7 +92,7 @@ canvas = document.querySelector('#c');
 
     let matGlass = new THREE.MeshPhysicalMaterial( {
       // color: 0xA4CBD4,
-      color: 0x666666,
+      color: 0x444444,
       opacity: 0.5,
       side: THREE.DoubleSide,
       transparent: true,
@@ -99,13 +101,13 @@ canvas = document.querySelector('#c');
 
     let matGlass2 = new THREE.MeshPhysicalMaterial( {
       // color: 0xA4CBD4,
-      color: 0x222222,
+      color: 0x444444,
       opacity: 0.5,
       transparent: true,
     } );
 
     let matFloor = new THREE.MeshBasicMaterial( {color: 0x999999, side: THREE.DoubleSide} );
-    let matContours = new THREE.LineBasicMaterial( { color: 0xEEEEEE, linewidth: 0.75} );
+    let matContours = new THREE.LineBasicMaterial( { color: 0xEEEEEE, linewidth: 0.5} );
 
     //geometry
     let model = obj.children[0];
@@ -142,7 +144,7 @@ canvas = document.querySelector('#c');
         let extrudeSettings = { depth:0.1, bevelEnabled: false};
   
         let geometryFloor = new THREE.ExtrudeBufferGeometry( floorOutline, extrudeSettings );
-        let matEdge = new THREE.LineBasicMaterial( { color: 0x222222, linewidth: 0.5 } )
+        let matEdge = new THREE.LineBasicMaterial( { color: 0x222222, linewidth:0.5 } )
         let edges = new THREE.EdgesGeometry( geometryFloor);
         let edge = new THREE.LineSegments( edges, matEdge );
         let floor = new THREE.Mesh( geometryFloor, matGlass );
@@ -157,7 +159,7 @@ canvas = document.querySelector('#c');
         edge.rotation.y = Math.PI; 
         edge.translateZ(points[0].z / 10.0);
   
-        scene.add( model, edge );
+        scene.add( floor, edge );
       }
     }
 
@@ -176,21 +178,30 @@ canvas = document.querySelector('#c');
       let curve = new THREE.CatmullRomCurve3(points)
       let curvePts = curve.getPoints( 50 );
       let geometryContour = new THREE.BufferGeometry().setFromPoints( curvePts );
+      
       let contourLine = new THREE.Line( geometryContour, matContours );
       contourLine.scale.set(0.1,0.1,0.1);
       contourLine.rotation.x = Math.PI / 2; 
       contourLine.rotation.y = Math.PI; 
 
-      scene.add(contourLine)
-    }
+      // contourLine.updateMatrix();
 
+      // geometryContour.applyMatrix( contourLine.matrix );
+
+      scene.add(contourLine)
+
+      generate(contourLine)
+    }
     scene.add(model, ground);
+
+
+
   });
   
 }
 
 animate();
-
+// download(scene) 
 
 function animate() {
 
@@ -198,3 +209,38 @@ function animate() {
   requestAnimationFrame(animate);
 
 }
+
+var dload
+
+function generate(da) {
+
+  // Instantiate an exporter
+var exporter = new OBJExporter();
+// Parse the input and generate the ply output
+var data = exporter.parse( da );
+
+dload = data
+
+}
+
+
+function download(filename, text) {
+  var element = document.createElement('a');
+  element.setAttribute('href', 'data:text/plain;charset=utf-8,' + encodeURIComponent(text));
+  element.setAttribute('download', filename);
+
+  element.style.display = 'none';
+  document.body.appendChild(element);
+
+  element.click();
+
+  document.body.removeChild(element);
+}
+
+
+document.querySelector("#download").onclick = function()
+  {
+    console.log(dload)
+    download("test.obj", dload)
+
+  }  

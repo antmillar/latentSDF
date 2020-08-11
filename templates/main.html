@@ -83,7 +83,7 @@
           <form id = "loadData" action = "/uploader" method = "POST" enctype="multipart/form-data">
             <div class="form-group ">
               <label for="loadForm">Model</label>
-              <input type="file" name="file" id="file">
+              <input type="file" name="file" id="file"></input>
             </div>
           </form>
       </div>
@@ -94,16 +94,27 @@
     <!-- MODEL DETAILS -->
     <div class="text-center" style="margin-top: 20px">
 
-      {% for value in latents %}
+      {% for value in annotations %}
       <div class = "row">
         <div class = "col">
-          <small>{{value}}</small>
+          <small>{{value[0]}}</small>
         </div>
         <div class = "col">
-          <small></small>
+          <small>{{value[2]}}</small>
         </div>
-
+        <div class = "col">
+          <small>{{value[3]}}</small>
+        </div>
+        <div class = "col">
+          <small>{{value[4]}}</small>
+        </div>
       </div>
+
+      <!-- space between titles and values -->
+      {% if loop.index0 == 0 %}
+      <br>
+      {% endif %}
+
       {% endfor %}
   
     </div>
@@ -179,7 +190,7 @@
     <div class="col-md-3" >
       <div class="row">
 
-      <div class="col-6 offset-3 text-center">
+      <div class="col-6 offset-3 text-center"  style="margin-top: 30px">
 
       <h6>Constraints</h6>
       <br>
@@ -210,7 +221,10 @@
       </div>
     </div>
     {% endfor %}
-
+    <br>
+    <form id = "downloadData" action = "">
+        <input type="submit" class="btn btn-outline-dark"  id = "download" name = "download" value = "Download 3D Model">
+    </form>
   </div>
 
 
@@ -223,11 +237,18 @@
     <input type="hidden" id = "slices" name = "slices">
     <input type="hidden" id = "modelHeight" name = "modelHeight">
     <input type="hidden" id = "modelTaper" name = "modelTaper">
+
 </form>
 
 <form action="" method="POST" id = "btnConstraint">
 
   <input type="hidden" id = "scoverage" name = "scoverage">
+
+</form>
+
+<form action="" method="POST" id = "btnDownload">
+
+  <input type="hidden" id = "downloadModel" name = "downloadModel">
 
 </form>
 
