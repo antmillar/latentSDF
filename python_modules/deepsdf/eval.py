@@ -171,8 +171,8 @@ def generateModel(sliceVectors, model, numSlices, taper):
     contours = []
     floors = []
     floor_labels = []
-    floor_height = 2
-    samples = 100
+    floor_height = 4
+    samples = 200
     contour_every = 3
     floor_every = 1
     level = 0.0
@@ -196,7 +196,7 @@ def generateModel(sliceVectors, model, numSlices, taper):
 
 
             test = np.c_[floor, idx * floor_every * np.ones((floor.shape[0], 1))]
-            test[:,2] += 1 #subtract one for the extra base plane
+            # test[:,2] += 1 #subtract one for the extra base plane
             test[:,2]*= floor_height #need to scale up the height
             test[:,0] -= 25.0
             test[:,1] -= 25.0

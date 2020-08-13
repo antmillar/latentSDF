@@ -107,7 +107,7 @@ raster.onMouseLeave = function(event) {
     text.content = "";
 }
 
-function extractSlices(sliceCount){
+function extractSlices(sliceCount, nodes, discrete){
 
     //check if there are actually any nodes!
     slices = [];
@@ -126,19 +126,59 @@ function extractSlices(sliceCount){
     else
     {
         var offsetStep = path.length / sliceCount;
-
-        for(i = 0; i <sliceCount; i++)
+        if(true)
         {
-            var point = path.getPointAt(offsetStep * i);
-            var pt = point / width;
-            pt = mouseToLatent(point)
-            slices.push([pt.x.toFixed(2), pt.y.toFixed(2)]);
+            var stackSize =  Math.floor(sliceCount/ nodes.length);
+            var remainder = sliceCount % stackSize;
+            // console.log(getCenter(nodes[i]))
+            for(i = 0; i <nodes.length; i++)
+            {
+                var center = getCenter(nodes[i]);
+                var pt = mouseToLatent(center)
+
+                for(j = 0; j < stackSize; j++)
+                {
+                    slices.push([pt.x.toFixed(2), pt.y.toFixed(2)]);
+                }
+            }
+
+            for(k = 0; k < remainder; k++)
+            {
+                slices.push([pt.x.toFixed(2), pt.y.toFixed(2)]);
+            }
+
+            console.log(slices)
         }
+        else
+        {
+
+            for(i = 0; i <sliceCount; i++)
+            {
+                var point = path.getPointAt(offsetStep * i);
+                var pt = point / width;
+                pt = mouseToLatent(point)
+                slices.push([pt.x.toFixed(2), pt.y.toFixed(2)]);
+            }
+        }
+
     }
     console.log(slices)
     globals.slices = slices
 }
 
+function getCenter(n){
+
+
+    var a = n.segments[0].point;
+    var b = n.segments[1].point;
+    var c = n.segments[2].point;
+    var d = n.segments[3].point;
+
+    var centerX = (a.x + b.x + c.x + d.x) / 4.0;
+    var centerY = (a.y + b.y + c.y + d.y) / 4.0;
+
+    return new Point(centerX, centerY)
+}
 
 function onMouseDown(event) {
 
@@ -151,7 +191,6 @@ function onMouseDown(event) {
         node.strokeWidth = 5;
         
         nodes.push(node);
-
 
         var hist = new PointText(new Point(710, 200 + history.length * 20));
         hist.fontSize = 10;
@@ -173,7 +212,7 @@ function onMouseDown(event) {
         path.add(event.point)
         path.smooth() //need to contrain values on path within the range if want to use this.
 
-        extractSlices(globals.height);
+        extractSlices(globals.height, nodes);
     }
     
     //on right click

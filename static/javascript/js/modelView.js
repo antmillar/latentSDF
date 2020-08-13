@@ -11,7 +11,7 @@ canvas = document.querySelector('#c');
 
   //scene
   scene = new THREE.Scene();
-  scene.background = new THREE.Color(0x888888);
+  scene.background = new THREE.Color(0xBBAAAA);
 
   // //grid
   // const size = 100;
@@ -34,24 +34,32 @@ canvas = document.querySelector('#c');
   controls.target.set(0, 5, 0);
   controls.update();
 
-  //lighting
-  var hemiLight = new THREE.HemisphereLight( 0xffffff, 0.5);
-  scene.add( hemiLight );
+  // //lighting
+  // var hemiLight = new THREE.HemisphereLight( 0xffffff, 0.5);
+  // scene.add( hemiLight );
 
-  var dirLight = new THREE.DirectionalLight( 0xffffff, 1.0);
-  dirLight.position.set( -10, 20, 10 );
+  var ambient = new THREE.AmbientLight( 0xffffff );
+  scene.add( ambient );
+        
+
+  var dirLight = new THREE.DirectionalLight( 0xffffff, 0.5);
+  dirLight.position.set( -20, 20, 20 );
   dirLight.castShadow = true;
   dirLight.shadow.mapSize = new THREE.Vector2(1024, 1024);
   scene.add(dirLight);
 
-  var dirLight2 = new THREE.DirectionalLight( 0xffffff, 0.5);
-  dirLight2.position.set( 15, 30, 10 );
-  dirLight2.castShadow = true;
-  dirLight2.shadow.mapSize = new THREE.Vector2(1024, 1024);
-  scene.add(dirLight2);
+  // var dirLight2 = new THREE.DirectionalLight( 0xffffff, 0.5);
+  // dirLight2.position.set( 15, 30, 10 );
+  // dirLight2.castShadow = true;
+  // dirLight2.shadow.mapSize = new THREE.Vector2(1024, 1024);
+  // scene.add(dirLight2);
 
   renderer = new THREE.WebGLRenderer({antialias:true, canvas : canvas});
-
+  let width = 800
+  let height = 800
+  renderer.setSize(width, height)
+  renderer.shadowMap.enabled = true;
+  renderer.shadowMap.type = THREE.PCFSoftShadowMap;
 
   if(active_model == "") 
   {
@@ -68,8 +76,8 @@ canvas = document.querySelector('#c');
 
     let matCore = new THREE.MeshPhysicalMaterial( {
       color: 0x111111,
-      opacity:0.75,
-      side: THREE.DoubleSide,
+      opacity:0.5,
+      // side: THREE.DoubleSide,
       transparent: true,
     } );
 
@@ -92,22 +100,25 @@ canvas = document.querySelector('#c');
 
     let matGlass = new THREE.MeshPhysicalMaterial( {
       // color: 0xA4CBD4,
-      color: 0x444444,
-      opacity: 0.5,
-      side: THREE.DoubleSide,
+      color: 0xAAAAAA,
+      opacity: 0.25,
+      // side: THREE.DoubleSide,
       transparent: true,
       // reflectivity: 0.5,
     } );
 
     let matGlass2 = new THREE.MeshPhysicalMaterial( {
       // color: 0xA4CBD4,
-      color: 0x444444,
+      color: 0x555555,
       opacity: 0.5,
+      side: THREE.DoubleSide,
       transparent: true,
+      // depthTest: false,
+
     } );
 
-    let matFloor = new THREE.MeshBasicMaterial( {color: 0x999999, side: THREE.DoubleSide} );
-    let matContours = new THREE.LineBasicMaterial( { color: 0xEEEEEE, linewidth: 0.5} );
+    let matFloor = new THREE.MeshPhongMaterial( {color: 0xAA9999, side: THREE.DoubleSide} );
+    let matContours = new THREE.LineBasicMaterial( { color: 0xEEEEEE, linewidth: 1.5,   } );
 
     //geometry
     let model = obj.children[0];
@@ -115,9 +126,11 @@ canvas = document.querySelector('#c');
 
     model.geometry.computeVertexNormals();
     model.material = matGlass2
+    model.castShadow = true;
 
-    let plane = new THREE.PlaneGeometry( 5, 5, 0 );
+    let plane = new THREE.PlaneGeometry( 20, 20, 0 );
     let ground = new THREE.Mesh( plane, matFloor );
+    ground.receiveShadow = true;
 
     //scaling/rotating
     model.scale.set(0.1,0.1,0.1);
@@ -144,11 +157,11 @@ canvas = document.querySelector('#c');
         let extrudeSettings = { depth:0.1, bevelEnabled: false};
   
         let geometryFloor = new THREE.ExtrudeBufferGeometry( floorOutline, extrudeSettings );
-        let matEdge = new THREE.LineBasicMaterial( { color: 0x222222, linewidth:0.5 } )
+        let matEdge = new THREE.LineBasicMaterial( { color: 0x111111, linewidth:0.75} )
         let edges = new THREE.EdgesGeometry( geometryFloor);
         let edge = new THREE.LineSegments( edges, matEdge );
         let floor = new THREE.Mesh( geometryFloor, matGlass );
-  
+        floor.castShadow = true;
         floor.scale.set(0.1,0.1,0.1);
         floor.rotation.x = Math.PI / 2; 
         floor.rotation.y = Math.PI; 
@@ -192,7 +205,7 @@ canvas = document.querySelector('#c');
 
       generate(contourLine)
     }
-    scene.add(model, ground);
+    scene.add(model,  ground);
 
 
 

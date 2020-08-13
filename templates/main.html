@@ -38,193 +38,210 @@
 <body>
 
 
-
-<!-- SEED DESIGN INFO -->
   <div class="row " >
-  <div class="col-md-3 text-center" style=" margin-top: 100px">
-    <h6>Data Input</h6>
-    <!-- <br> -->
-    <!-- <div class = "row ">    
-      <div class = "col-3" > 
-        <figure class = "text-center">
-         <img src ="static/img/floor1.png"  class="figure-img img-fluid"> 
-         <figcaption  >[0,0]</figcaption>
-        </figure>
-      </div>
-
-      <div class = "col-3"> 
-        <figure >
-          <img src ="static/img/floor2.png"  class="figure-img img-fluid"> 
-          <figcaption >[0,0]</figcaption>
-         </figure>
-      </div>
-
-      <div class = "col-3"> 
-        <figure >
-          <img src ="static/img/floor3.png"  class="figure-img img-fluid"> 
-          <figcaption >[0,0]</figcaption>
-         </figure>
-      </div>
-
-       <div class = "col-3"> 
-        <figure >
-          <img src ="static/img/floor4.png"  class="figure-img img-fluid"> 
-          <figcaption >[0,0]</figcaption>
-         </figure>
-       </div>
-
-   </div> -->
-
-
-  <!-- LOAD MODEL AND VECTORS -->
-  <div class="row" >
-      <div class="col " >
- 
-          <form id = "loadData" action = "/uploader" method = "POST" enctype="multipart/form-data">
-            <div class="form-group ">
-              <label for="loadForm">Model</label>
-              <input type="file" name="file" id="file"></input>
-            </div>
-          </form>
-      </div>
-  </div>
-
-  <h6>Seed Designs</h6>
-
-    <!-- MODEL DETAILS -->
-    <div class="text-center" style="margin-top: 20px">
-
-      {% for value in annotations %}
-      <div class = "row">
-        <div class = "col">
-          <small>{{value[0]}}</small>
-        </div>
-        <div class = "col">
-          <small>{{value[2]}}</small>
-        </div>
-        <div class = "col">
-          <small>{{value[3]}}</small>
-        </div>
-        <div class = "col">
-          <small>{{value[4]}}</small>
-        </div>
-      </div>
-
-      <!-- space between titles and values -->
-      {% if loop.index0 == 0 %}
-      <br>
-      {% endif %}
-
-      {% endfor %}
   
-    </div>
 
-    
-<!-- LATENT SPACE INPUTS -->
-    <form id = "myForm" action="" method="POST" style="width: 80%; margin:auto; margin-top: 50px;" class= "text-center">
-      <h6>Latent Space</h6>
-      <br>
-      <div class="form-row">
-        <div class="col">
-          <label for="xMin">xMin</label>
-          <input type="text" class="form-control text-center" id="xMin" name="xMin">
-        </div>
-        <div class="col">
-          <label for="xMax">xMax</label>
-          <input type="text" class="form-control text-center" id="xMax" name="xMax">
-        </div>
-      </div>
+    <div class="col-md-3 text-center" style=" margin-top: 100px">
+      
 
-      <div class="form-row" style="margin-top: 10px">
-        <div class="col">
-          <label for="yMin">yMin</label>
-          <input type="text" class="form-control text-center" id="yMin" name="yMin">
+
+      <form id = "loadData" action = "/uploader" method = "POST" enctype="multipart/form-data">
+        <div class="form-group ">
+          <label for="loadForm">Model</label>
+          <input type="file" name="file" id="file"></input>
         </div>
-        <div class="col">
-          <label for="yMax">yMax</label>
-          <input type="text" class="form-control text-center" id="yMax" name="yMax">
-        </div>
+      </form>
+
+      <h6>Seed Designs</h6>
+
+      <!-- MODEL DETAILS -->
+      <div class="text-center" style="margin-top: 20px">
   
-      </div>
-
-
-
-        <div class="form-row" style="margin-top: 30px"> 
-          <div class="col md-3">
-            <input type="submit" class="btn btn-outline-dark"  id = "updateLatent" name = "updateLatent" value = "Update Latent Space">
+        {% for value in annotations %}
+        <div class = "row">
+          <div class = "col">
+            <small>{{value[0]}}</small>
+          </div>
+          <div class = "col">
+            <small>{{value[2]}}</small>
+          </div>
+          <div class = "col">
+            <small>{{value[3]}}</small>
+          </div>
+          <div class = "col">
+            <small>{{value[4]}}</small>
           </div>
         </div>
-    </form>
-
-<!-- MODEL INPUTS -->
-    <div class="row" style="width: 80%; margin:auto; margin-top: 50px">
-      <!-- <div class="col-6 offset-3"> -->
-        <div class="col">
-        <label for="height">Model Floors</label>
-        <input type="text" class="form-control text-center" id="height" name="height">
-        </div>
-        <div class="col">
-          <label for="taper">Taper</label>
-        <input type="text" class="form-control text-center" id="taper" name="taper", value = 0.0 >
-      </div>
-      </div>
-        <br>
-        <button type="button" class="btn btn-outline-dark" id = "gen" name = "gen" >Generate 3D Model</button>
-    <!-- </div> -->
-    </div>
-    
-  <div class="col-md-6 ">
-   <!-- <input type="submit" id = 'predict' value="Predict" onclick="return save();"> -->
-  <div class="mx-auto text-center">
-    <br>
-    <canvas id="paperCanvas"  width="800" height="800" style="border:2px solid #000000 "></canvas>
-    
-    <!-- <image src = "/static/img/latent.png" width = "600", height = "600"></image> -->
-
-  </div>
-
-
-  </div>
   
-  <!-- CONSTRAINTS -->
-    <div class="col-md-3" >
-      <div class="row">
-
-      <div class="col-6 offset-3 text-center"  style="margin-top: 30px">
-
-      <h6>Constraints</h6>
-      <br>
-      <label for="xMin">Coverage (%)</label>
-      <input type="text" class="form-control text-center" id="coverage" name="coverage">
-      <br>
-      <button type="button" class="btn btn-outline-dark" id = "constraint" name = "constraint" >Apply</button>
-      </div>
+        <!-- space between titles and values -->
+        {% if loop.index0 == 0 %}
+        <br>
+        {% endif %}
+  
+        {% endfor %}
+    
       </div>
 
-<!-- MODEL DISPLAY CANVAS -->
-  <div class="mx-auto text-center">
-    <div class = "row"  style="margin-top: 50px">
-      <canvas id="c"   width="300" height="300" style="width:100%; height: auto"></canvas>
+      
     </div>
+
+      <div class="col-md-2" style=" margin-top: 100px">
+
+        <br>
+        <div class="col text-center">
+          <h6>Latent Space</h6>
+          <br>
+        </div>
+
+ 
+
+        <form id = "latentForm" action="" method="POST">
+
+          <div class="form-group form-inline">
+            <div class="col-2">
+              <small for="xMin">xMin</small>
+            </div>
+            <div class="col-4">
+              <input type="text" class="inputBox text-center" id="xMin" name="xMin" >
+            </div>
+
+           <div class="col-2">
+              <small >xMax</small>
+            </div>
+            <div class="col-4">
+              <input type="text" class="inputBox text-center"  id="xMax" name="xMax" >
+            </div>
+          </div>
+
+          <div class="form-group form-inline">
+            <div class="col-2">
+              <small for="yMin">yMin</small>
+            </div>
+            <div class="col-4">
+              <input type="text" class="inputBox text-center" id="yMin" name="yMin" >
+            </div>
+
+
+              <div class="col-2">
+                <small for="yMax">yMax</small>
+              </div>
+              <div class="col-4">
+                <input type="text" class="inputBox text-center"  id="yMax" name="yMax" >
+              </div>
+            </div>
+          
+
+
+
+        </form>
+    
+      
+      </div>
+
+
+
+      
+      <div class="col-md-2 text-center" style=" margin-top: 100px">
+ 
+          <br>
+
+        <div class="col text-center">
+          <h6>Output Specs</h6>
+          <br>
+        </div>
+
+
+
+
+          <div class="form-group form-inline">
+            <div class="col-6">
+                <small for="height">Model Floors</small>
+            </div>
+            <div class="col-6">
+              <input type="text" class="inputBox text-center" id="height" name="height" >
+            </div>
+          </div>
+
+
+          <div class="form-group form-inline">
+
+
+          <div class="col-6">
+            <small for="taper">Taper</small>
+          </div>
+          <div class="col-6">
+            <input type="text" class="inputBox text-center" id="taper" name="taper"  value = 0.0 >
+          </div>
+      </div>
+
+        <br>
+
+
+        </div>
+  
+    
+
+
+      <div class="col-md-2 text-center" style=" margin-top: 100px">
+
+        <br>
+        
+        <h6>Constraints</h6>
+        <br>
+ 
+      
+
+
+
+        <div class="form-group form-inline">
+          <div class="col-6">
+            <small for="xMin">Coverage (%)</small>
+
+          </div>
+          <div class="col-6">
+            <input type="text"class="inputBox text-center"  id="coverage" name="coverage">
+
+          </div>
+        </div>
+
+
+
+      </div>
+
+
+      <div class="col-md-2 text-center" style=" margin-top: 100px">
+
+        <br>
+        
+        <h6>Model Details</h6>
+        <br>
+
+        {% for field, value in model_details._asdict().items() %}
+        <div class = "row">
+          <div class = "col">
+            <small>{{field}}</small>
+          </div>
+          <div class = "col">
+            <small>{{value}}</small>
+          </div>
+        </div>
+        {% endfor %}
+        <br>
+
+
   </div>
+
+
+    </div>
+
+  
+  
+  </div>
+
 
   <!-- MODEL DETAILS -->
   <div class="col-6 offset-3 text-center" style="margin-top: 20px">
 
-    {% for field, value in model_details._asdict().items() %}
-    <div class = "row">
-      <div class = "col">
-        <small>{{field}}</small>
-      </div>
-      <div class = "col">
-        <small>{{value}}</small>
-      </div>
-    </div>
-    {% endfor %}
-    <br>
-    <form id = "downloadData" action = "">
-        <input type="submit" class="btn btn-outline-dark"  id = "download" name = "download" value = "Download 3D Model">
-    </form>
   </div>
 
 
@@ -254,8 +271,61 @@
 
 
 </div>
+</div>
 
 
+
+<!-- ROW OF BUTTONS -->
+
+<div class="row " >
+
+  <div class="col-md-3  text-center " ></div>
+  <div class="col-md-2  text-center " >
+    <button type="button" class="btn-sm  btn-outline-dark" id = "latent" name = "latent" >Update Latent Space</button>
+  </div>
+
+  <div class="col-md-2  text-center " >
+    <button type="button" class="btn-sm  btn-outline-dark" id = "gen" name = "gen" >Generate 3D Model</button>
+  </div>
+
+  <div class="col-md-2  text-center " >
+    <button type="button" class="btn-sm btn-outline-dark" id = "constraint" name = "constraint" >Apply</button>
+  </div>
+
+  <div class="col-md-2  text-center " >
+    <form id = "downloadData" action = "">
+      <input type="submit" class="btn-sm  btn-outline-dark"  id = "download" name = "download" value = "Download 3D Model">
+    </form>
+  </div>
+
+
+
+
+</div>  
+
+
+
+<!-- PATH AND DISPLAY ROW -->
+
+<div class = "row">
+
+  <!-- PATH PLOTTING -->
+  <div class="col-md-6  text-center " >
+    <div >
+      <br>
+      <canvas id="paperCanvas"  width="800" height="800" style="border: 1px solid black;" > </canvas>
+    </div>
+
+  </div>
+
+  <!-- DISPLAY -->
+  <div class="col-md-6 text-center">
+    <div >
+       <canvas id="c"   width="800" height="800" style=" margin-top: 25px" ></canvas>
+   </div>
+ </div>
+
+</div>
 
   </body>
 

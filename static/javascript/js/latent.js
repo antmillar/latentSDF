@@ -58,4 +58,13 @@ function init(jQuery) {
     
 });
 
+
+$("#latent").on('click', (e) => {
+  
+
+  document.querySelector("#latentForm").submit();
+  
+});
+
+
 }

@@ -182,7 +182,7 @@ def main():
             active_model = '/static/models/outputs/' + model_name
 
         #update the latent space
-        if(request.form.get("updateLatent")):
+        if(request.form.get("xMin")):
 
             latent_bounds = Bounds(float(request.form.get("xMin")), float(request.form.get("xMax")), float(request.form.get("yMin")), float(request.form.get("yMax")))
             latent_space.updateLatent(latent_bounds, torch_model, latents)
