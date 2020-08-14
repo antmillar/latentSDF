@@ -35,7 +35,8 @@ input_path = cwd + '/static/models/inputs'
 output_path = cwd + '/static/models/outputs'
 mesh_path = cwd + '/static/models/meshes'
 
-Details = namedtuple("Details", ["floors", "taper", "maxCoverage", "minCoverage"])
+Details = namedtuple("Details", ["Floors", "Taper", "Rotation", "MaxCoverage", "MinCoverage"])
+
 Bounds = namedtuple('Bounds', ['xMin', 'xMax', 'yMin', 'yMax'])
 latent_bounds = Bounds(-1.5, 1.0, -1.0, 1.0)
 img_source  = '/static/img/latent_grid.png'
@@ -48,10 +49,10 @@ coverage = False
 latent_loaded = False
 contours = False
 floors = False
-model_details = Details(0,0,0,0)
+model_details = Details(0,0,0,0,0)
 latents = np.empty([0])
 annotations = np.empty([0])
-
+cov = None
 
 ##TODO
 
@@ -63,8 +64,6 @@ annotations = np.empty([0])
 
 #make the seed latent vectors dynamic/store them
 #in latent space capture details of the grid 
-
-
 
 
 #base route
@@ -167,7 +166,13 @@ def main():
                 taper = float(request.form.get("modelTaper"))
                 
             except:
-                taper = 0.0
+                taper = 0
+
+            try:
+                rotation = float(request.form.get("modelRotation"))
+                
+            except:
+                rotation = 0
 
             sliceVectors = request.form.get("slices")
             sliceVectors = sliceVectors.split(",")
@@ -177,7 +182,7 @@ def main():
 
             torch.cuda.empty_cache()
             global contours, floors, model_details
-            model_name, contours, floors, model_details =  eval.evaluate(coords, height, taper, torch_model)
+            model_name, contours, floors, model_details =  eval.generateModel(coords, height, taper, rotation, torch_model)
             global active_model
             active_model = '/static/models/outputs/' + model_name
 
@@ -189,21 +194,17 @@ def main():
 
         #update the latent space
         if(request.form.get("scoverage")):
-
-            cov = request.form.get("scoverage")
+            global coverage
+            coverage = request.form.get("scoverage")
             try:
-                cov = float(cov)
+                coverage = float(coverage)
             except:
-                cov = False
-            print(cov)
+                coverage = False
 
-            latent_space.updateLatent(latent_bounds, torch_model, latents, cov)
-            
+            latent_space.updateLatent(latent_bounds, torch_model, latents, coverage)
 
 
-
-
-    return render_template('main.html', latent_bounds = list(latent_bounds), img_source = img_source, img_source_hm = img_source_hm, active_model = active_model, height = height, coverage = coverage, contours = contours, floors = floors, model_details = model_details, annotations = annotations )
+    return render_template('main.html', latent_bounds = list(latent_bounds), img_source = img_source, img_source_hm = img_source_hm, active_model = active_model, height = height, coverage = coverage, contours = contours, floors = floors, model_details = model_details, annotations = annotations)
 
 # #route to hold the latest status 
 # @app.route('/progress/<int:thread_id>')

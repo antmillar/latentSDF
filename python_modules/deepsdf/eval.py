@@ -48,16 +48,25 @@ def evaluate(sliceVectors, height, taper, model_path):
 
     model = deepSDFCodedShape()#.cuda()
     model.load_state_dict(torch.load(model_path, map_location=device))
-    latent = torch.tensor( [-2, 1]).to(device)
 
     return generateModel(sliceVectors, model, height, taper)
 
 
 @funcTimer
-def generateModel(sliceVectors, model, numSlices, taper):
+def generateModel(sliceVectors, height, taper, rotation, model_path):
 
     print("generating 3d model...")
+    numSlices = height
+ 
+    print("loading model...")
+    # model_path = os.path.join(dir_model, "8floorplans.pth")
+    # model_path = os.path.join(dir_model, "8floorplans_selflearn.pth")
+    print(model_path)
 
+    model = deepSDFCodedShape()#.cuda()
+    model.load_state_dict(torch.load(model_path, map_location=device))
+
+    print("ASDASDASDASD" , numSlices)
 
     def createSlice(pts, latent):
 
@@ -86,15 +95,35 @@ def generateModel(sliceVectors, model, numSlices, taper):
     # add = 0.0
 
     #clamp value
-    taper = min(1.0, max(taper, 0.0))
     sliceCount = len(sliceVectors)
-    slices_to_taper = int(sliceCount* taper)
+    slices_to_taper = int(taper)
 
     coverages = []
+    start_rotation = 0
 
-    for vector in sliceVectors[:sliceCount - slices_to_taper]:
-        sdf, coverage = createSlice(pts, torch.tensor(vector))
+    def get_rotation_matrix(degrees):
+      '''
+      Generates a rotation matrix for given angle
+      '''
+
+      theta = np.radians(degrees)
+      cos, sin = np.cos(theta), np.sin(theta)
+      rotation_matrix = torch.tensor(np.array(((cos, -sin), (sin, cos)))).float() #clockwise
+      
+      return rotation_matrix
+
+    for vector in sliceVectors[:sliceCount]:
+
+        start_rotation += rotation
+        rot_mat = get_rotation_matrix(start_rotation) 
+
+        #rotate the sdf input pts
+        pts_rotated = torch.mm(pts, rot_mat)
+
+        sdf, coverage = createSlice(pts_rotated, torch.tensor(vector))
         coverages.append(coverage)
+
+
 
         slices.append(sdf.detach().cpu())
 
@@ -150,35 +179,38 @@ def generateModel(sliceVectors, model, numSlices, taper):
     #tapering
     for i in range(slices_to_taper):
       ##cubic aymptote
-        shrinkage = 1.0 / (slices_to_taper *slices_to_taper * slices_to_taper)
-        slices.append(slices[-slices_to_taper + i].detach().cpu() + shrinkage * i*i*i)
-
+        shrinkage = 1.0 / (slices_to_taper *slices_to_taper )
+        slices[-slices_to_taper + i] = slices[-slices_to_taper + i].detach().cpu() + shrinkage * i*i
 
 
     #add closing slice to last layer
     slices.append(endLayer)
     # cores.append(endLayer)
  
-    minCoverage = min(coverages)
-    maxCoverage = max(coverages)
+    minCoverage = np.round(min(coverages) * 100.0, 2)
+    maxCoverage = np.round(max(coverages) * 100.0, 2)
     ground_floor = slices[1]
     ground_floor_min = torch.min(ground_floor)
     ground_floor_min_coords = torch.nonzero(ground_floor == torch.min(ground_floor))
     
     stacked = np.stack(slices)
 
+
     #generate the isocontours
     contours = []
     floors = []
     floor_labels = []
-    floor_height = 4
+    floor_height = 2
     samples = 200
     contour_every = 3
     floor_every = 1
     level = 0.0
 
+
+
+  #ADDING FLOORS
     ##funny indexing due to extra ends added to close form
-    for idx, s in enumerate(slices[1:-1:floor_every]):
+    for idx, s in enumerate(slices[1:-slices_to_taper - 1:floor_every]):
         
         # level = -idx * taper/len(slices)
 
@@ -208,7 +240,6 @@ def generateModel(sliceVectors, model, numSlices, taper):
         floor_labels.append(labels)
 
 
-    print(labels)
 
     #create vertical contours
     ySlices = []
@@ -235,7 +266,10 @@ def generateModel(sliceVectors, model, numSlices, taper):
               test = np.c_[contour, 1 * idx * contour_every * np.ones((contour.shape[0], 1))]
 
               test[:,[0, 2]] = test[:,[2, 0]]
+              test[:,2] -= 1 #move down a floor
+
               test[:,2]*= floor_height #need to scale up the height
+              #centering
               test[:,0] -= 25.0
               test[:,1] -= 25.0 
               test = test.tolist()
@@ -244,17 +278,18 @@ def generateModel(sliceVectors, model, numSlices, taper):
         contours.append(a)
 
 
-
     lblCounts = [len(np.unique(lbl)) for lbl in floor_labels]
+
     maxlbls  = max(lblCounts)
 
     lvlstocheck = [i for i, x in enumerate(lblCounts) if x == maxlbls]
+
 
     def most_frequent_label(List): 
         labels = set(List)
         labels.remove(0) #don't want to include outside space
         from collections import Counter
-        print(Counter(List))
+        # print(Counter(List))
         return max(labels, key = List.count) 
       
     #if maxlbls level, find most frequent element and how many there are
@@ -372,7 +407,7 @@ def generateModel(sliceVectors, model, numSlices, taper):
 
       square = Box(core_diameter, core_diameter, core_center)
 
-      cores  = [square.field.reshape(res, res) for i in range(numSlices)]
+      cores  = [square.field.reshape(res, res) for i in range(numSlices - slices_to_taper)]
 
 
       core_centers.append(cores)
@@ -662,8 +697,8 @@ def generateModel(sliceVectors, model, numSlices, taper):
 
     # pv.save_meshio(os.path.join(dir_output, fn), surf)
 
-    Details = namedtuple("Details", ["floors", "taper", "maxCoverage", "minCoverage"])
-    model_details = Details(numSlices, taper, maxCoverage, minCoverage)
+    Details = namedtuple("Details", ["Floors", "Taper", "Rotation", "MaxCoverage", "MinCoverage"])
+    model_details = Details(numSlices, taper, rotation, maxCoverage, minCoverage)
 
     return fn, contours, floors, model_details
 

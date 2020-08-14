@@ -1,10 +1,10 @@
 {% extends "base.html" %}
 
 {% block content %}
-<script type="text/paperscript" src="static/javascript/js/paperPath.js" canvas="paperCanvas"></script>
-<script type="text/javascript" src="static/javascript/js/latent.js" defer></script>
-<script type="module" src="static/javascript/js/modelView.js" defer></script>
 
+<script type="text/paperscript" src="static/javascript/js/paperPath.js" canvas="paperCanvas" ></script>
+<script type="module" src="static/javascript/js/modelView.js" defer></script>
+<script type="text/javascript" src="static/javascript/js/latent.js" defer></script>
 
 <script type="text/javascript">  
   var latent_bounds = {{ latent_bounds|tojson }};  
@@ -17,6 +17,8 @@
   var contours =  {{ contours|tojson }};
   var floors =  {{ floors|tojson }};
   var model_details =  {{ model_details|tojson }};
+  var canvas_height = 700;
+  var canvas_width = 700;
 
 
 
@@ -31,9 +33,12 @@
     coverage: coverage,
     contours: contours,
     floors: floors,
+    discrete: false,
 
   }
 </script>
+
+
 
 <body>
 
@@ -41,16 +46,11 @@
   <div class="row " >
   
 
-    <div class="col-md-3 text-center" style=" margin-top: 100px">
+    <div class="col-md-3 text-center" >
       
 
 
-      <form id = "loadData" action = "/uploader" method = "POST" enctype="multipart/form-data">
-        <div class="form-group ">
-          <label for="loadForm">Model</label>
-          <input type="file" name="file" id="file"></input>
-        </div>
-      </form>
+      <br>
 
       <h6>Seed Designs</h6>
 
@@ -85,7 +85,7 @@
       
     </div>
 
-      <div class="col-md-2" style=" margin-top: 100px">
+      <div class="col-md-2" >
 
         <br>
         <div class="col text-center">
@@ -141,17 +141,14 @@
 
 
       
-      <div class="col-md-2 text-center" style=" margin-top: 100px">
+      <div class="col-md-2 text-center" >
  
           <br>
 
         <div class="col text-center">
-          <h6>Output Specs</h6>
+          <h6>Design Inputs</h6>
           <br>
         </div>
-
-
-
 
           <div class="form-group form-inline">
             <div class="col-6">
@@ -162,36 +159,45 @@
             </div>
           </div>
 
+          <div class="form-group form-inline">
+            <div class="col-6">
+              <small for="taper">Tapered Floors</small>
+            </div>
+            <div class="col-6">
+              <input type="text" class="inputBox text-center" id="taper" name="taper"  value = 0 >
+            </div>
+          </div>
 
           <div class="form-group form-inline">
+            <div class="col-6">
+              <small for="taper">Floor Rotation (°)</small>
+            </div>
+            <div class="col-6">
+              <input type="text" class="inputBox text-center" id="rotation" name="rotation"  value = 0 >
+            </div>
+          </div>
 
 
-          <div class="col-6">
-            <small for="taper">Taper</small>
+          <div class="form-group form-inline">
+            <div class="col-6">
+              <small for="taper">Discrete</small>
+            </div>
+            <div class="col-6">
+              <input type="checkbox" class="inputBox text-center" id="discrete" name="discrete"  >
+            </div>
           </div>
-          <div class="col-6">
-            <input type="text" class="inputBox text-center" id="taper" name="taper"  value = 0.0 >
-          </div>
-      </div>
+
 
         <br>
-
 
         </div>
   
-    
-
-
-      <div class="col-md-2 text-center" style=" margin-top: 100px">
+      <div class="col-md-2 text-center" >
 
         <br>
-        
         <h6>Constraints</h6>
         <br>
  
-      
-
-
 
         <div class="form-group form-inline">
           <div class="col-6">
@@ -209,7 +215,7 @@
       </div>
 
 
-      <div class="col-md-2 text-center" style=" margin-top: 100px">
+      <div class="col-md-2 text-center" >
 
         <br>
         
@@ -254,6 +260,8 @@
     <input type="hidden" id = "slices" name = "slices">
     <input type="hidden" id = "modelHeight" name = "modelHeight">
     <input type="hidden" id = "modelTaper" name = "modelTaper">
+    <input type="hidden" id = "modelRotation" name = "modelRotation">
+
 
 </form>
 
@@ -279,25 +287,49 @@
 
 <div class="row " >
 
-  <div class="col-md-3  text-center " ></div>
-  <div class="col-md-2  text-center " >
-    <button type="button" class="btn-sm  btn-outline-dark" id = "latent" name = "latent" >Update Latent Space</button>
+  <div class="col-md-3 text-center   " >
+
+    <div class ="row">
+      <div class="col-md-6 text-center  " >
+
+        <form id = "loadData" action = "/uploader" method = "POST" enctype="multipart/form-data">
+          <div class="input-group mb-3">
+
+            <div class="custom-file">
+
+              <input type="file" class="custom-file-input" id="file" name="file" >
+              <label class="custom-file-label inputBox" style="text-align: left;" for="file">Upload Model</label>
+            </div>
+          </div>
+
+        </form>
+      </div>
+
+     <div class="col-md-6 text-center  " >
+      <button type="button" class="btn-sm inputBox" id = "analysis" name = "analysis" >Launch Design Analysis</button>
+
+     </div>
+
+    </div>
   </div>
 
   <div class="col-md-2  text-center " >
-    <button type="button" class="btn-sm  btn-outline-dark" id = "gen" name = "gen" >Generate 3D Model</button>
+    <button type="button" class="btn-sm inputBox" id = "latent" name = "latent" >Update Latent Space</button>
   </div>
 
   <div class="col-md-2  text-center " >
-    <button type="button" class="btn-sm btn-outline-dark" id = "constraint" name = "constraint" >Apply</button>
+    <button type="button" class="btn-sm  inputBox" id = "gen" name = "gen" >Generate 3D Model</button>
+  </div>
+
+  <div class="col-md-2  text-center " >
+    <button type="button" class="btn-sm inputBox" id = "constraint" name = "constraint" >Apply</button>
   </div>
 
   <div class="col-md-2  text-center " >
     <form id = "downloadData" action = "">
-      <input type="submit" class="btn-sm  btn-outline-dark"  id = "download" name = "download" value = "Download 3D Model">
+      <input type="submit" class="btn-sm  inputBox"  id = "download" name = "download" value = "Download 3D Model">
     </form>
   </div>
-
 
 
 
@@ -313,7 +345,7 @@
   <div class="col-md-6  text-center " >
     <div >
       <br>
-      <canvas id="paperCanvas"  width="800" height="800" style="border: 1px solid black;" > </canvas>
+      <canvas id="paperCanvas" width = 700 height = 700  style="border: 1px solid black;" > </canvas>
     </div>
 
   </div>
@@ -321,7 +353,7 @@
   <!-- DISPLAY -->
   <div class="col-md-6 text-center">
     <div >
-       <canvas id="c"   width="800" height="800" style=" margin-top: 25px" ></canvas>
+       <canvas id="c"style=" margin-top: 25px" ></canvas>
    </div>
  </div>
 

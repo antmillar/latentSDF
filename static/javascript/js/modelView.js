@@ -55,9 +55,9 @@ canvas = document.querySelector('#c');
   // scene.add(dirLight2);
 
   renderer = new THREE.WebGLRenderer({antialias:true, canvas : canvas});
-  let width = 800
-  let height = 800
-  renderer.setSize(width, height)
+  let width = canvas_width;
+  let height = canvas_height;
+  renderer.setSize(width, height);
   renderer.shadowMap.enabled = true;
   renderer.shadowMap.type = THREE.PCFSoftShadowMap;
 
@@ -101,7 +101,7 @@ canvas = document.querySelector('#c');
     let matGlass = new THREE.MeshPhysicalMaterial( {
       // color: 0xA4CBD4,
       color: 0xAAAAAA,
-      opacity: 0.25,
+      opacity: 0.5,
       // side: THREE.DoubleSide,
       transparent: true,
       // reflectivity: 0.5,

@@ -9,9 +9,8 @@ var texts = [];
 globals.internalClicked = extractSlices
 
 
-
-
 width = 600
+margin = 50;
 
 path.strokeColor =  new Color(1,0.0, 0.0, 0.5);
 
@@ -41,9 +40,9 @@ rasterHM.insertBelow(raster)
 rasterHM.rescale(width, width);
 
 
-margin = 100;
 
-var text = new PointText(new Point(300, 30));
+
+var text = new PointText(new Point(width / 2 - margin, 30));
 text.fontSize = 16;
 text.fontFamily = "sans-serif";
 text.fillColor = 'black';
@@ -107,18 +106,18 @@ raster.onMouseLeave = function(event) {
     text.content = "";
 }
 
-function extractSlices(sliceCount, nodes, discrete){
+function extractSlices(sliceCount, nodes){
 
     //check if there are actually any nodes!
     slices = [];
 
+
     //deal with edge case of a single point, which is not a valid path yet
-    if(path.length == 0)
+    if(path.length == 0.0)
     {
         for(i = 0; i <sliceCount; i++)
-        {
-            var pt = path.segments[0].point / width;
-            pt = mouseToLatent(point)
+        {   
+            pt = mouseToLatent(path.segments[0].point)
             slices.push([pt.x.toFixed(2), pt.y.toFixed(2)]);
          }
     }
@@ -126,7 +125,7 @@ function extractSlices(sliceCount, nodes, discrete){
     else
     {
         var offsetStep = path.length / sliceCount;
-        if(true)
+        if(globals.discrete)
         {
             var stackSize =  Math.floor(sliceCount/ nodes.length);
             var remainder = sliceCount % stackSize;
@@ -192,13 +191,13 @@ function onMouseDown(event) {
         
         nodes.push(node);
 
-        var hist = new PointText(new Point(710, 200 + history.length * 20));
-        hist.fontSize = 10;
+        var hist = new PointText(new Point(width + margin + margin/10.0, 2 * margin + history.length * 20));
+        hist.fontSize = 6;
         hist.fontFamily = "sans-serif";
         hist.fillColor = 'black';
 
         var coords = mouseToLatent(event.point)
-        hist.content = history.length + " : [ " + coords.x.toFixed(2) + " , " + coords.y.toFixed(2) + " ]"
+        hist.content = "[ " + coords.x.toFixed(2) + " , " + coords.y.toFixed(2) + " ]"
         history.push(hist);
 
         for (i = 0; i < nodes.length; i++) {
