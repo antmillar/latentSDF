@@ -59,9 +59,8 @@ function init(jQuery) {
   });
 
 
-    $("#constraint").on('click', (e) => {
+  $("#constraint").on('click', (e) => {
   
-
       document.querySelector("#scoverage").value = globals.coverage;
       document.querySelector("#btnConstraint").submit();
       
@@ -71,13 +70,13 @@ function init(jQuery) {
     window.globals.coverage = document.querySelector("#coverage").value;
   });
 
-  $("#download").on('click', (e) => {
+//   $("#download").on('click', (e) => {
 
   
-    document.querySelector("#downloadModel").value = 1;
-    document.querySelector("#btnDownload").submit();
+//     document.querySelector("#downloadModel").value = 1;
+//     document.querySelector("#btnDownload").submit();
     
-});
+// });
 
 
 $("#latent").on('click', (e) => {
@@ -87,5 +86,10 @@ $("#latent").on('click', (e) => {
   
 });
 
+$("#analysis").on('click', (e) => {
+  
 
+  document.querySelector("#launchAnalysis").submit();
+  
+});
 }

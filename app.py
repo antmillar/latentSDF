@@ -35,7 +35,7 @@ input_path = cwd + '/static/models/inputs'
 output_path = cwd + '/static/models/outputs'
 mesh_path = cwd + '/static/models/meshes'
 
-Details = namedtuple("Details", ["Floors", "Taper", "Rotation", "MaxCoverage", "MinCoverage"])
+Details = namedtuple("Details", ["Floors", "Taper", "FloorRotation", "MaxCoverage", "MinCoverage"])
 
 Bounds = namedtuple('Bounds', ['xMin', 'xMax', 'yMin', 'yMax'])
 latent_bounds = Bounds(-1.5, 1.0, -1.0, 1.0)
@@ -45,14 +45,13 @@ img_source_hm  = '/static/img/coverage_heatmap.png'
 active_model = ''
 torch_model =  '/home/anthony/repos/latentSDF/static/models/torch/default.pth'
 height = 50
-coverage = False
+coverage = ""
 latent_loaded = False
 contours = False
 floors = False
 model_details = Details(0,0,0,0,0)
 latents = np.empty([0])
 annotations = np.empty([0])
-cov = None
 
 ##TODO
 
@@ -70,6 +69,12 @@ cov = None
 @app.route('/')
 def index():
     return render_template('index.html')
+
+#base route
+@app.route('/analysis')
+def analysis():
+    print(latents)
+    return render_template('analysis.html', latents = latents, annotations = annotations)
 
 #model route
 @app.route('/modelView')
@@ -97,7 +102,7 @@ def upload_file():
             torch_model = model_path + "model.pth"
 
             #load the latents from the zip
-            global annotations
+            global annotations, latents
             float_formatter = "{:.2f}".format
             np.set_printoptions(formatter={'float_kind':float_formatter})
             annotations = np.load(model_path + "seeds.npy").astype(object) #object type as need to hold lists not just values

@@ -11,12 +11,25 @@ body {
 
 .inputBox {
   font-size: 12px;
-  margin: auto;
+  margin: 2px;
   width:100%;
   text-align: center;
 
   border-radius: 3px;
   border:  1px solid rgb(214, 193, 193);
+}
+
+.button1 {
+
+  width:80%;
+  text-align: center;
+  
+}
+
+.button2 {
+  color: #ffffff;
+  background-color:rgb(202, 115, 103);
+  
 }
 
 /* canvas[resize] {

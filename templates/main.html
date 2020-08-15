@@ -43,49 +43,68 @@
 <body>
 
 
-  <div class="row " >
+  <div class="row  " style="margin-bottom: -60px">
   
 
-    <div class="col-md-3 text-center" >
-      
+    <div class="col-md-3 text-center  " style="margin-top: 20px; margin-left: 20px">
 
-
-      <br>
-
-      <h6>Seed Designs</h6>
-
-      <!-- MODEL DETAILS -->
-      <div class="text-center" style="margin-top: 20px">
-  
-        {% for value in annotations %}
-        <div class = "row">
-          <div class = "col">
-            <small>{{value[0]}}</small>
-          </div>
-          <div class = "col">
-            <small>{{value[2]}}</small>
-          </div>
-          <div class = "col">
-            <small>{{value[3]}}</small>
-          </div>
-          <div class = "col">
-            <small>{{value[4]}}</small>
-          </div>
-        </div>
-  
-        <!-- space between titles and values -->
-        {% if loop.index0 == 0 %}
-        <br>
-        {% endif %}
-  
-        {% endfor %}
+      <div class="row " >
     
+        <div class ="row">
+          <div class="col-md-6 text-center  " >
+    
+            <form id = "loadData" action = "/uploader" method = "POST" enctype="multipart/form-data">
+              <div class="input-group mb-3">
+    
+                <div class="custom-file">
+    
+                  <input type="file" class="custom-file-input" id="file" name="file" >
+                  <label class="custom-file-label inputBox" style="text-align: left;" for="file">Upload Model</label>
+                </div>
+              </div>
+    
+            </form>
+          </div>
+    
+         <div class="col-md-6 text-center  " >
+            <form id = "launchAnalysis"  action="/analysis">
+              <button type="button" class="btn-sm  button2 inputBox" id = "analysis" name = "analysis" >Launch Design Analysis</button>
+            </form>
+         </div>
+         <br>
+    
+        </div>
+      </div>
+      
+      <div class ="row">
+        <div class="col-md-6 offset-3 text-center  " >
+         <button type="button" class="btn-sm inputBox " id = "latent" name = "latent" >Update Latent Space</button>
+        </div>
       </div>
 
-      
-    </div>
+      <div class ="row">
+        <div class="col-md-6 offset-3 text-center  " >
+        <button type="button" class="btn-sm inputBox " id = "constraint" name = "constraint" >Apply Constraints</button>
+       </div>
+      </div>
+    
+      <div class ="row">
+        <div class="col-md-6 offset-3 text-center  " >
+        <button type="button" class="btn-sm  inputBox " id = "gen" name = "gen" >Generate 3D Model</button>
+      </div>
+     </div>
+    
+      <div class ="row">
+        <div class="col-md-6 offset-3 text-center  " >
+          <button type="button" class="btn-sm inputBox "  id = "download" name = "download">Download 3D Model</button>
+        </div>
+      </div>
+    
+    
+    
+    </div>  
 
-      <div class="col-md-2" >
+      <div class="col-md-2 text-center" >
 
         <br>
         <div class="col text-center">
@@ -285,55 +304,7 @@
 
 <!-- ROW OF BUTTONS -->
 
-<div class="row " >
 
-  <div class="col-md-3 text-center   " >
-
-    <div class ="row">
-      <div class="col-md-6 text-center  " >
-
-        <form id = "loadData" action = "/uploader" method = "POST" enctype="multipart/form-data">
-          <div class="input-group mb-3">
-
-            <div class="custom-file">
-
-              <input type="file" class="custom-file-input" id="file" name="file" >
-              <label class="custom-file-label inputBox" style="text-align: left;" for="file">Upload Model</label>
-            </div>
-          </div>
-
-        </form>
-      </div>
-
-     <div class="col-md-6 text-center  " >
-      <button type="button" class="btn-sm inputBox" id = "analysis" name = "analysis" >Launch Design Analysis</button>
-
-     </div>
-
-    </div>
-  </div>
-
-  <div class="col-md-2  text-center " >
-    <button type="button" class="btn-sm inputBox" id = "latent" name = "latent" >Update Latent Space</button>
-  </div>
-
-  <div class="col-md-2  text-center " >
-    <button type="button" class="btn-sm  inputBox" id = "gen" name = "gen" >Generate 3D Model</button>
-  </div>
-
-  <div class="col-md-2  text-center " >
-    <button type="button" class="btn-sm inputBox" id = "constraint" name = "constraint" >Apply</button>
-  </div>
-
-  <div class="col-md-2  text-center " >
-    <form id = "downloadData" action = "">
-      <input type="submit" class="btn-sm  inputBox"  id = "download" name = "download" value = "Download 3D Model">
-    </form>
-  </div>
-
-
-
-</div>  
 
 
 

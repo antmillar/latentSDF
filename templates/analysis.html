@@ -1,0 +1,91 @@
+{% extends "base.html" %}
+
+{% block content %}
+
+<body>
+
+<div class = "row">
+
+  <div class="col-md-1 text-center" style="margin-top: 20px; margin-left: 20px">
+    <form action="/main">
+        <input type="submit" value="Back to Explorer" class = "inputBox" />
+    </form>
+  </div>
+
+  <div class="col-md-3 text-center" >
+      
+
+
+    <br>
+
+    <h6>Seed Designs</h6>
+
+    <!-- MODEL DETAILS -->
+    <div class="text-center" style="margin-top: 20px">
+
+      {% for value in annotations %}
+      <div class = "row">
+        <div class = "col">
+          <small>{{value[0]}}</small>
+        </div>
+        <div class = "col">
+          <small>{{value[2]}}</small>
+        </div>
+        <div class = "col">
+          <small>{{value[3]}}</small>
+        </div>
+        <div class = "col">
+          <small>{{value[4]}}</small>
+        </div>
+      </div>
+
+      <!-- space between titles and values -->
+      {% if loop.index0 == 0 %}
+      <br>
+      {% endif %}
+
+      {% endfor %}
+  
+    </div>
+
+    
+  </div>
+
+
+  <div class="col-md-3 text-center" >
+      
+
+
+    <br>
+
+    <h6>Latents</h6>
+
+    <!-- MODEL DETAILS -->
+    <div class="text-center" style="margin-top: 20px">
+
+      {% for value in latents %}
+      <div class = "row">
+        <div class = "col">
+          <small>{{value}}</small>
+        </div>
+      </div>
+
+      <!-- space between titles and values -->
+      {% if loop.index0 == 0 %}
+      <br>
+      {% endif %}
+
+      {% endfor %}
+  
+    </div>
+
+    
+  </div>
+
+
+
+</div>
+</body>
+
+
+{% endblock %}

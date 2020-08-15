@@ -8,10 +8,11 @@ var scene, camera, renderer, canvas;
 
 canvas = document.querySelector('#c');
 
-
+  var floor_height = 2;
+  var bldg_height = floor_height * floors.length
   //scene
   scene = new THREE.Scene();
-  scene.background = new THREE.Color(0xBBAAAA);
+  scene.background = new THREE.Color(0xBBBBBB);
 
   // //grid
   // const size = 100;
@@ -40,16 +41,16 @@ canvas = document.querySelector('#c');
 
   var ambient = new THREE.AmbientLight( 0xffffff );
   scene.add( ambient );
-        
+  scene.fog = new THREE.Fog( 0xBBBBBB, 75, 175 );
 
   var dirLight = new THREE.DirectionalLight( 0xffffff, 0.5);
   dirLight.position.set( -20, 20, 20 );
   dirLight.castShadow = true;
-  dirLight.shadow.mapSize = new THREE.Vector2(1024, 1024);
+  dirLight.shadow.mapSize = new THREE.Vector2(128, 128);
   scene.add(dirLight);
 
-  // var dirLight2 = new THREE.DirectionalLight( 0xffffff, 0.5);
-  // dirLight2.position.set( 15, 30, 10 );
+  // var dirLight2 = new THREE.DirectionalLight( 0xffffff, 0.25);
+  // dirLight2.position.set( -25, 20, 20 );
   // dirLight2.castShadow = true;
   // dirLight2.shadow.mapSize = new THREE.Vector2(1024, 1024);
   // scene.add(dirLight2);
@@ -57,9 +58,97 @@ canvas = document.querySelector('#c');
   renderer = new THREE.WebGLRenderer({antialias:true, canvas : canvas});
   let width = canvas_width;
   let height = canvas_height;
+  renderer.setPixelRatio( window.devicePixelRatio );
   renderer.setSize(width, height);
   renderer.shadowMap.enabled = true;
   renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+
+  var matAxis = new THREE.LineBasicMaterial({
+    color: 0x888888
+  });
+  // add dimension lines
+
+  var buffer = 0.5 
+  var lenTip = 0.25
+
+  var xPts = [];
+  xPts.push( new THREE.Vector3( -5 + buffer, 0.05 , -5 - buffer + lenTip) );
+  xPts.push( new THREE.Vector3( -5 + buffer, 0.05, -5 - buffer - lenTip) );
+  xPts.push( new THREE.Vector3( -5 + buffer, 0.05, -5 - buffer) );
+  xPts.push( new THREE.Vector3( 5 - buffer, 0.05 , -5 - buffer) );
+  xPts.push( new THREE.Vector3( 5 - buffer, 0.05 , -5 - buffer + lenTip) );
+  xPts.push( new THREE.Vector3( 5 - buffer, 0.05 , -5 - buffer - lenTip) );
+
+  var geoX = new THREE.BufferGeometry().setFromPoints( xPts );
+  var xAxis = new THREE.Line( geoX, matAxis );
+
+
+  var yPts = [];
+
+  yPts.push( new THREE.Vector3( -5 + lenTip, 0.05, 5  - buffer) );
+  yPts.push( new THREE.Vector3( -5 - lenTip, 0.05, 5  - buffer) );
+  yPts.push( new THREE.Vector3( -5 , 0.05, 5  - buffer) );
+  yPts.push( new THREE.Vector3( -5 , 0.05 , -5 + buffer) )
+  yPts.push( new THREE.Vector3( -5  + lenTip, 0.05 , -5 + buffer) )
+  yPts.push( new THREE.Vector3( -5  - lenTip, 0.05 , -5 + buffer) )
+  
+
+  var geoY = new THREE.BufferGeometry().setFromPoints( yPts );
+  var yAxis = new THREE.Line( geoY, matAxis );
+
+
+  var zPts = [];
+  zPts.push( new THREE.Vector3( -5 - lenTip, 0.1, -5 - lenTip) );
+  zPts.push( new THREE.Vector3( -5 + lenTip, 0.1, -5 + lenTip) );
+  zPts.push( new THREE.Vector3( -5, 0.1, -5 ) );
+  zPts.push( new THREE.Vector3( -5, bldg_height / 10 - buffer,-5) )
+  zPts.push( new THREE.Vector3( -5 - lenTip, bldg_height / 10  - buffer,-5 - lenTip) )
+  zPts.push( new THREE.Vector3( -5 + lenTip, bldg_height / 10  - buffer,-5 + lenTip) )
+
+  
+  var geoZ = new THREE.BufferGeometry().setFromPoints( zPts );
+  var zAxis = new THREE.Line( geoZ, matAxis );
+
+  scene.add( xAxis, yAxis, zAxis );
+
+  // adding the axis labels
+
+  var fontLoader = new THREE.FontLoader();
+  var matText = new THREE.MeshBasicMaterial({ color: 0x444444 });
+
+  fontLoader.load("/static/fonts/Kalapi_Regular.json",function(fnt){ 
+
+      var params = {size: 0.5, height: 0.05,  curveSegments: 6,  font: fnt,}
+
+      var geoText = new THREE.TextGeometry('50', params);
+
+      var  textZ = new THREE.Mesh(geoText, matText);
+      geoText.computeBoundingSphere();
+      textZ.translateZ(-5 - 2 *  geoText.boundingSphere.radius);
+      textZ.translateX(-geoText.boundingSphere.radius);
+      textZ.rotateX(-Math.PI / 2);
+
+      var  textX = new THREE.Mesh(geoText, matText);
+      geoText.computeBoundingSphere();
+      textX.translateX(-5 - 2 *  geoText.boundingSphere.radius);
+      textX.translateZ(-geoText.boundingSphere.radius);
+      textX.rotateX(-Math.PI / 2);
+      textX.rotateZ(-Math.PI / 2);
+
+      geoText = new THREE.TextGeometry(bldg_height.toString(), params);
+      geoText.computeBoundingSphere();
+
+      var  textY = new THREE.Mesh(geoText, matText);
+      textY.translateX(-5 - 2 * geoText.boundingSphere.radius);
+      textY.translateZ(-5 - 2 * geoText.boundingSphere.radius);
+      textY.translateY(bldg_height / 10 / 2);
+      geoText.computeBoundingSphere();
+      textY.rotateY(-Math.PI / 4);
+
+      console.log( )
+
+      scene.add(textZ, textX, textY);
+  })
 
   if(active_model == "") 
   {
@@ -100,10 +189,10 @@ canvas = document.querySelector('#c');
 
     let matGlass = new THREE.MeshPhysicalMaterial( {
       // color: 0xA4CBD4,
-      color: 0xAAAAAA,
-      opacity: 0.5,
+      color: 0xDDDDDD,
+      opacity: 0.75,
       // side: THREE.DoubleSide,
-      transparent: true,
+      // transparent: true,
       // reflectivity: 0.5,
     } );
 
@@ -111,14 +200,13 @@ canvas = document.querySelector('#c');
       // color: 0xA4CBD4,
       color: 0x555555,
       opacity: 0.5,
-      side: THREE.DoubleSide,
+      side: THREE.FrontSide,
       transparent: true,
       // depthTest: false,
 
     } );
 
-    let matFloor = new THREE.MeshPhongMaterial( {color: 0xAA9999, side: THREE.DoubleSide} );
-    let matContours = new THREE.LineBasicMaterial( { color: 0xEEEEEE, linewidth: 1.5,   } );
+    let matContours = new THREE.LineBasicMaterial( { color: 0x444444, linewidth: 0.5,   } );
 
     //geometry
     let model = obj.children[0];
@@ -128,8 +216,10 @@ canvas = document.querySelector('#c');
     model.material = matGlass2
     model.castShadow = true;
 
-    let plane = new THREE.PlaneGeometry( 20, 20, 0 );
-    let ground = new THREE.Mesh( plane, matFloor );
+    let ground =  new THREE.Mesh(
+      new THREE.PlaneBufferGeometry( 400, 400 ),
+      new THREE.MeshPhongMaterial( { color: 0xBBBBBB, specular: 0x101010, side: THREE.DoubleSide } )
+    );
     ground.receiveShadow = true;
 
     //scaling/rotating
@@ -140,8 +230,17 @@ canvas = document.querySelector('#c');
 
 
     //create floors in building
+
+
     for(let i = 0; i < floors.length; i++)
     {
+    //skip first floor as double height
+      if(i == 1)
+      {
+        continue;
+      }
+
+
       //check if the floor contains more than one contour
       let floorContourCount = floors[i].length
       for(let j = 0; j < floorContourCount; j++)
