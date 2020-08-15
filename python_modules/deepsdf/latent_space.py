@@ -6,20 +6,15 @@ import os
 from .architectures import deepSDFCodedShape
 from.utils import funcTimer, get_area_covered
 import seaborn as sns
+from matplotlib.offsetbox import OffsetImage, AnnotationBbox
+
 
 cwd = os.getcwd()
 
 dir_image = cwd + '/static/img'
-
+dir_image_designs = dir_image + '/designs/'
 dir_model = cwd + '/torchModels'
 device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
-
-res = 50
-
-ptsSample = np.float_([[x, y] 
-                for x in  np.linspace(-50, 50, res) 
-                for y in np.linspace(-50, 50, res)])
-pts = torch.Tensor(ptsSample).to(device)
 
 
 class LatentGrid():
@@ -195,8 +190,12 @@ def find_seeds(latentBounds, xAx, yAx, latents):
         closestLatents.append(closest)
     return closestLatents
 
-def process_latent(model, latent, invert = False):
+def process_latent(model, latent, invert = False,  res = 50):
 
+    ptsSample = np.float_([[x, y] 
+                for x in np.linspace(-50, 50, res) 
+                for y in np.linspace(-50, 50, res)])
+    pts = torch.Tensor(ptsSample).to(device)
 
     #generate sdf from latent vector using model
     sdf = model.forward(latent.to(device), pts)
@@ -218,6 +217,73 @@ def process_latent(model, latent, invert = False):
 
     return vals, coverage
 
+def prepare_analysis(model_path, latents):
+    '''
+    Generates images for a set of latent vectors
+    '''
+
+    model = deepSDFCodedShape().to(device)
+    model.load_state_dict(torch.load(model_path, map_location=device))
+
+    images = [process_latent(model, torch.tensor(latent), res = 100)[0] for  latent in latents]
+
+    for im, latent in zip(images, latents):
+        plt.imsave(dir_image_designs + str(latent) + ".png", im, cmap = "binary" )
+    
+    create_distance_plot(latents)
+
+def create_distance_plot(latents):
+    '''
+    Generates a plot of the designs and their relative positions
+    '''
+    def getImage(path):
+        return OffsetImage(plt.imread(path), zoom=.3)
+
+    paths = [dir_image_designs + str(latent) + ".png" for latent in latents]
+
+    latent_codes = np.array(latents)
+    print(latents)
+    x = latent_codes[:,0]
+    y = latent_codes[:,1]
+
+    fig, ax = plt.subplots(figsize = (12, 12))
+    plt.xlim(min(x) - 0.25,  max(x) + 0.25)
+    plt.ylim(min(y) - 0.25,  max(y) + 0.25)
+
+    ax.spines['top'].set_visible(False)
+    ax.spines['right'].set_visible(False)   
+
+    ax.scatter(x, y) 
+
+    for x0, y0, path in zip(x, y, paths):
+        ab = AnnotationBbox(getImage(path), (x0, y0), frameon=False)
+        ax.add_artist(ab)
+
+    fig.savefig(dir_image_designs + "distance.jpg")
+    
+def calculate_distances(index, annotations):
+    """
+    Calculates distances relative to a chosen seed design
+    """
+    print(annotations)
+
+    #index minus one because using 1-indexing in design gui
+    target_latent = annotations[index - 1, 1]
+
+    def euclidean_dist(l1, l2):
+
+        return np.round(np.sqrt(pow(l2[0] - l1[0], 2) + pow(l2[1] - l1[1], 2)), 2)
+
+    distances = []
+    for latent in annotations[:,1]:
+        distances.append(euclidean_dist(latent, target_latent))
+
+    sortedOrder = np.array(distances).argsort()
+    
+    newArray = annotations.copy()
+    newArray = np.c_[ newArray, np.array(distances)]     
+
+    return newArray[sortedOrder]
 
 
 def grid_extremes(latentList):

@@ -52,6 +52,9 @@ floors = False
 model_details = Details(0,0,0,0,0)
 latents = np.empty([0])
 annotations = np.empty([0])
+distances = np.empty([0])
+
+titles = np.empty([0])
 
 ##TODO
 
@@ -71,10 +74,21 @@ def index():
     return render_template('index.html')
 
 #base route
-@app.route('/analysis')
+@app.route('/analysis',  methods = ['GET', 'POST'])
 def analysis():
-    print(latents)
-    return render_template('analysis.html', latents = latents, annotations = annotations)
+
+    if(latents != []):
+        latent_space.prepare_analysis(torch_model, latents)
+
+    if request.method == 'POST': 
+ 
+        #generate 3d model
+        if(request.form.get("seedDesign")):
+            index = int(request.form.get('seedDesign'))
+            global distances
+            distances = latent_space.calculate_distances(index, annotations)
+
+    return render_template('analysis.html', latents = latents, annotations = annotations, titles = titles ,distances=distances)
 
 #model route
 @app.route('/modelView')
@@ -102,16 +116,25 @@ def upload_file():
             torch_model = model_path + "model.pth"
 
             #load the latents from the zip
-            global annotations, latents
+            global annotations, latents, titles
             float_formatter = "{:.2f}".format
             np.set_printoptions(formatter={'float_kind':float_formatter})
             annotations = np.load(model_path + "seeds.npy").astype(object) #object type as need to hold lists not just values
-            print(annotations)
+
+            titles = annotations[0, :]
+            annotations = annotations[1:, :]
+
+            #convert string latents to lists
+            latents = [json.loads(latent) for latent, *_ in annotations] #skips first row as titles
             
-            latents = [json.loads(latent) for latent, *_ in annotations[1:,:]] #skips first row as titles
-            
-            for i in range(1, annotations.shape[0]):
-                annotations[i, 0] = latents[i - 1] 
+            annotations[:,0] = latents 
+
+            #sort by x coord
+            sortedOrder = np.array(latents)[:,0].argsort()
+            annotations[0:,:] = annotations[0:,:][sortedOrder]
+
+            #add 1-indexed column
+            annotations = np.c_[np.array([i for i in range(1, annotations.shape[0] + 1)]), annotations]
 
             ##update bounds
             #maybe I should strip out the logic for changing latent bounds from this initial population

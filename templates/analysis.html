@@ -2,9 +2,21 @@
 
 {% block content %}
 
+<script type="text/javascript">  
+
+function getval(sel)
+{
+    document.querySelector("#seedDesign").submit();
+
+    
+}
+
+</script>
+
+
 <body>
 
-<div class = "row">
+<div class = "row text-center">
 
   <div class="col-md-1 text-center" style="margin-top: 20px; margin-left: 20px">
     <form action="/main">
@@ -12,7 +24,7 @@
     </form>
   </div>
 
-  <div class="col-md-3 text-center" >
+  <div class="col-md-4 text-center" >
       
 
 
@@ -23,66 +35,147 @@
     <!-- MODEL DETAILS -->
     <div class="text-center" style="margin-top: 20px">
 
-      {% for value in annotations %}
       <div class = "row">
-        <div class = "col">
-          <small>{{value[0]}}</small>
+        <div class = "col-md-1">
+          <small>#</small>
         </div>
-        <div class = "col">
-          <small>{{value[2]}}</small>
+        <div class = "col-md-1">
+          <small>X</small>
         </div>
-        <div class = "col">
-          <small>{{value[3]}}</small>
+        <div class = "col-md-1">
+          <small>Y</small>
         </div>
-        <div class = "col">
-          <small>{{value[4]}}</small>
+        <div class = "col-md-2">
+          <small>{{titles[2]}}</small>
+        </div>
+        <div class = "col-md-2">
+          <small>{{titles[3]}}</small>
+        </div>
+        <div class = "col-md-2">
+          <small>{{titles[4]}}</small>
         </div>
       </div>
 
-      <!-- space between titles and values -->
-      {% if loop.index0 == 0 %}
       <br>
-      {% endif %}
+      {% for value in annotations %}
+      <div class = "row">
+        <div class = "col-md-1">
+          <small>{{value[0]}}</small>
+        </div>
+        <div class = "col-md-1">
+          <small>{{value[1][0]}}</small>
+        </div>
+        <div class = "col-md-1">
+          <small>{{value[1][1]}}</small>
+        </div>
+        <div class = "col-md-2">
+          <small>{{value[3]}}</small>
+        </div>
+        <div class = "col-md-2">
+          <small>{{value[4]}}</small>
+        </div>
+        <div class = "col-md-2">
+          <small>{{value[5]}}</small>
+        </div>
+      </div>
 
       {% endfor %}
   
     </div>
+      <br>
+
+      <br>
+      <br>
+      <div class = "row ">
+        <div class = "text-center col-md-6 offset-3">
+         <h6>Sorted by Distance</h6>
+       </div>
+      </div>
+
+   
+      <div class = "row">
+
+
+
+        <form id = "seedDesign"  action="" method="POST">
+
+        <small>Choose a Design:</small>
+          <select name = "seedDesign" onchange= "getval(this);"  class = "inputBox">
+            {% for value in annotations %}
+            <option value={{loop.index}}>{{loop.index}}</option>
+
+            {% endfor %}
+          </select> 
+        </form>
+
+      </div>
+
+
+
+
+      <div class = "row">
+        <div class = "col-md-1">
+          <small>#</small>
+        </div>
+        <div class = "col-md-1">
+          <small>X</small>
+        </div>
+        <div class = "col-md-1">
+          <small>Y</small>
+        </div>
+        <div class = "col-md-2">
+          <small>{{titles[2]}}</small>
+        </div>
+        <div class = "col-md-2">
+          <small>{{titles[3]}}</small>
+        </div>
+        <div class = "col-md-2">
+          <small>{{titles[4]}}</small>
+        </div>
+        <div class = "col-md-2">
+          <small>Distance</small>
+        </div>
+      </div>
+
+      <br>
+
+
+      {% for value in distances %}
+      <div class = "row">
+        <div class = "col-md-1">
+          <small>{{value[0]}}</small>
+        </div>
+        <div class = "col-md-1">
+          <small>{{value[1][0]}}</small>
+        </div>
+        <div class = "col-md-1">
+          <small>{{value[1][1]}}</small>
+        </div>
+        <div class = "col-md-2">
+          <small>{{value[3]}}</small>
+        </div>
+        <div class = "col-md-2">
+          <small>{{value[4]}}</small>
+        </div>
+        <div class = "col-md-2">
+          <small>{{value[5]}}</small>
+        </div>
+        <div class = "col-md-2">
+          <small>{{value[6]}}</small>
+        </div>
+      </div>
+
+      {% endfor %}
+
 
     
   </div>
 
 
   <div class="col-md-3 text-center" >
-      
 
-
-    <br>
-
-    <h6>Latents</h6>
-
-    <!-- MODEL DETAILS -->
-    <div class="text-center" style="margin-top: 20px">
-
-      {% for value in latents %}
-      <div class = "row">
-        <div class = "col">
-          <small>{{value}}</small>
-        </div>
-      </div>
-
-      <!-- space between titles and values -->
-      {% if loop.index0 == 0 %}
-      <br>
-      {% endif %}
-
-      {% endfor %}
-  
-    </div>
-
-    
+    <img src="/static/img/designs/distance.jpg" height = 900 width = 900>
   </div>
-
-
 
 </div>
 </body>

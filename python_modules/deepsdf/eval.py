@@ -697,7 +697,7 @@ def generateModel(sliceVectors, height, taper, rotation, model_path):
 
     # pv.save_meshio(os.path.join(dir_output, fn), surf)
 
-    Details = namedtuple("Details", ["Floors", "Taper", "FloorRotation", "MaxCoverage", "MinCoverage"])
+    Details = namedtuple("Details", ["Floors", "Taper", "Rotation", "MaxCoverage", "MinCoverage"])
     model_details = Details(numSlices, taper, rotation, maxCoverage, minCoverage)
 
     return fn, contours, floors, model_details

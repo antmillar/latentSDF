@@ -59,6 +59,8 @@ function init(jQuery) {
   });
 
 
+
+
   $("#constraint").on('click', (e) => {
   
       document.querySelector("#scoverage").value = globals.coverage;

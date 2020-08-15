@@ -8,18 +8,16 @@ var scene, camera, renderer, canvas;
 
 canvas = document.querySelector('#c');
 
-  var floor_height = 2;
-  var bldg_height = floor_height * floors.length
+
   //scene
   scene = new THREE.Scene();
   scene.background = new THREE.Color(0xBBBBBB);
-
   // //grid
   // const size = 100;
   // const divisions = 50;
   // let helper = new THREE.GridHelper( size, divisions, 0x444444, 0x444444 );
   // scene.add( helper );
-
+  var bbox;
   //camera
   const fov = 45;
   const aspect = 1;  // the canvas default
@@ -63,92 +61,6 @@ canvas = document.querySelector('#c');
   renderer.shadowMap.enabled = true;
   renderer.shadowMap.type = THREE.PCFSoftShadowMap;
 
-  var matAxis = new THREE.LineBasicMaterial({
-    color: 0x888888
-  });
-  // add dimension lines
-
-  var buffer = 0.5 
-  var lenTip = 0.25
-
-  var xPts = [];
-  xPts.push( new THREE.Vector3( -5 + buffer, 0.05 , -5 - buffer + lenTip) );
-  xPts.push( new THREE.Vector3( -5 + buffer, 0.05, -5 - buffer - lenTip) );
-  xPts.push( new THREE.Vector3( -5 + buffer, 0.05, -5 - buffer) );
-  xPts.push( new THREE.Vector3( 5 - buffer, 0.05 , -5 - buffer) );
-  xPts.push( new THREE.Vector3( 5 - buffer, 0.05 , -5 - buffer + lenTip) );
-  xPts.push( new THREE.Vector3( 5 - buffer, 0.05 , -5 - buffer - lenTip) );
-
-  var geoX = new THREE.BufferGeometry().setFromPoints( xPts );
-  var xAxis = new THREE.Line( geoX, matAxis );
-
-
-  var yPts = [];
-
-  yPts.push( new THREE.Vector3( -5 + lenTip, 0.05, 5  - buffer) );
-  yPts.push( new THREE.Vector3( -5 - lenTip, 0.05, 5  - buffer) );
-  yPts.push( new THREE.Vector3( -5 , 0.05, 5  - buffer) );
-  yPts.push( new THREE.Vector3( -5 , 0.05 , -5 + buffer) )
-  yPts.push( new THREE.Vector3( -5  + lenTip, 0.05 , -5 + buffer) )
-  yPts.push( new THREE.Vector3( -5  - lenTip, 0.05 , -5 + buffer) )
-  
-
-  var geoY = new THREE.BufferGeometry().setFromPoints( yPts );
-  var yAxis = new THREE.Line( geoY, matAxis );
-
-
-  var zPts = [];
-  zPts.push( new THREE.Vector3( -5 - lenTip, 0.1, -5 - lenTip) );
-  zPts.push( new THREE.Vector3( -5 + lenTip, 0.1, -5 + lenTip) );
-  zPts.push( new THREE.Vector3( -5, 0.1, -5 ) );
-  zPts.push( new THREE.Vector3( -5, bldg_height / 10 - buffer,-5) )
-  zPts.push( new THREE.Vector3( -5 - lenTip, bldg_height / 10  - buffer,-5 - lenTip) )
-  zPts.push( new THREE.Vector3( -5 + lenTip, bldg_height / 10  - buffer,-5 + lenTip) )
-
-  
-  var geoZ = new THREE.BufferGeometry().setFromPoints( zPts );
-  var zAxis = new THREE.Line( geoZ, matAxis );
-
-  scene.add( xAxis, yAxis, zAxis );
-
-  // adding the axis labels
-
-  var fontLoader = new THREE.FontLoader();
-  var matText = new THREE.MeshBasicMaterial({ color: 0x444444 });
-
-  fontLoader.load("/static/fonts/Kalapi_Regular.json",function(fnt){ 
-
-      var params = {size: 0.5, height: 0.05,  curveSegments: 6,  font: fnt,}
-
-      var geoText = new THREE.TextGeometry('50', params);
-
-      var  textZ = new THREE.Mesh(geoText, matText);
-      geoText.computeBoundingSphere();
-      textZ.translateZ(-5 - 2 *  geoText.boundingSphere.radius);
-      textZ.translateX(-geoText.boundingSphere.radius);
-      textZ.rotateX(-Math.PI / 2);
-
-      var  textX = new THREE.Mesh(geoText, matText);
-      geoText.computeBoundingSphere();
-      textX.translateX(-5 - 2 *  geoText.boundingSphere.radius);
-      textX.translateZ(-geoText.boundingSphere.radius);
-      textX.rotateX(-Math.PI / 2);
-      textX.rotateZ(-Math.PI / 2);
-
-      geoText = new THREE.TextGeometry(bldg_height.toString(), params);
-      geoText.computeBoundingSphere();
-
-      var  textY = new THREE.Mesh(geoText, matText);
-      textY.translateX(-5 - 2 * geoText.boundingSphere.radius);
-      textY.translateZ(-5 - 2 * geoText.boundingSphere.radius);
-      textY.translateY(bldg_height / 10 / 2);
-      geoText.computeBoundingSphere();
-      textY.rotateY(-Math.PI / 4);
-
-      console.log( )
-
-      scene.add(textZ, textX, textY);
-  })
 
   if(active_model == "") 
   {
@@ -180,6 +92,41 @@ canvas = document.querySelector('#c');
     scene.add(model);
 
   })
+
+
+
+  // LOAD THE CORE OBJ FILE
+  let contextLoader = new OBJLoader2();
+  let fn_cont = "/static/models/inputs/context.obj"
+  
+  contextLoader.load(fn_cont, function(obj){
+
+    let matContext = new THREE.MeshPhysicalMaterial( {
+      color: 0xAAAAAA,
+      // side: THREE.DoubleSide,
+    } );
+
+    
+    let model = obj.children[0];
+    console.log("context model : " , model)
+    model.material = matContext;
+    var box = new THREE.Box3().setFromObject( model );
+    var center = new THREE.Vector3();
+    box.getCenter( center );
+    model.position.sub( center ); // center the model
+    model.rotation.y = Math.PI;   // rotate the model
+    model.translateY(6.15)
+    model.translateX(-16)
+    model.translateZ(-10)
+
+
+    model.scale.set(50,50,50);
+    // model.rotation.z = Math.PI / 2; 
+
+    scene.add(model);
+
+  })
+
 
   // LOAD THE BUILDING, FLOORS and CONTOURS
   let loader = new OBJLoader2();
@@ -304,11 +251,129 @@ canvas = document.querySelector('#c');
 
       generate(contourLine)
     }
-    scene.add(model,  ground);
+    scene.add(model, ground);
+
+    bbox = new THREE.Box3().setFromObject( model );
+    var size = bbox.getSize();
+    var xSize = (size.x * 5).toFixed(2);
+    var zSize = (size.z * 5).toFixed(2);
+
+    var floor_height = 2;
+    var bldg_height = floor_height * floors.length
+    var matAxis = new THREE.LineBasicMaterial({
+      color: 0x888888
+    });
+    // add dimension lines
+  
+    var buffer = 0.5 
+    var lenTip = 0.25
+  
+    var xPts = [];
+    xPts.push( new THREE.Vector3( -5 + buffer, 1.0 , -5 - buffer + lenTip) );
+    xPts.push( new THREE.Vector3( -5 + buffer, 1.0, -5 - buffer - lenTip) );
+    xPts.push( new THREE.Vector3( -5 + buffer, 1.0, -5 - buffer) );
+    xPts.push( new THREE.Vector3( 5 - buffer, 1.0 , -5 - buffer) );
+    xPts.push( new THREE.Vector3( 5 - buffer, 1.0 , -5 - buffer + lenTip) );
+    xPts.push( new THREE.Vector3( 5 - buffer, 1.0 , -5 - buffer - lenTip) );
+  
+    var geoX = new THREE.BufferGeometry().setFromPoints( xPts );
+    var xAxis = new THREE.Line( geoX, matAxis );
+  
+  
+    var yPts = [];
+  
+    yPts.push( new THREE.Vector3( -5 + lenTip, 1.0, 5  - buffer) );
+    yPts.push( new THREE.Vector3( -5 - lenTip, 1.0, 5  - buffer) );
+    yPts.push( new THREE.Vector3( -5 , 1.0, 5  - buffer) );
+    yPts.push( new THREE.Vector3( -5 , 1.0 , -5 + buffer) )
+    yPts.push( new THREE.Vector3( -5  + lenTip, 1.0 , -5 + buffer) )
+    yPts.push( new THREE.Vector3( -5  - lenTip, 1.0 , -5 + buffer) )
+    
+  
+    var geoY = new THREE.BufferGeometry().setFromPoints( yPts );
+    var yAxis = new THREE.Line( geoY, matAxis );
+  
+  
+    var zPts = [];
+    // zPts.push( new THREE.Vector3( -5 - lenTip, 0.1, -5 - lenTip) );
+    // zPts.push( new THREE.Vector3( -5 + lenTip, 0.1, -5 + lenTip) );
+    // zPts.push( new THREE.Vector3( -5, 0.1, -5 ) );
+    // zPts.push( new THREE.Vector3( -5, bldg_height / 10 - buffer,-5) )
+    zPts.push( new THREE.Vector3( -5 - lenTip, bldg_height / 10 + buffer  ,-5 - lenTip) )
+    zPts.push( new THREE.Vector3( -5 + 2*lenTip, bldg_height / 10 + buffer ,-5 + 2*lenTip) )
+  
+    
+    var geoZ = new THREE.BufferGeometry().setFromPoints( zPts );
+    var zAxis = new THREE.Line( geoZ, matAxis );
+  
+    scene.add( xAxis, yAxis, zAxis );
+  
+    // adding the axis labels
+  
+    var fontLoader = new THREE.FontLoader();
+    var matText = new THREE.MeshBasicMaterial({ color: 0x444444 });
+  
+    fontLoader.load("/static/fonts/Arial.json",function(fnt){ 
+  
+        var params = {size: 0.5, height: 0.05,  curveSegments: 6,  font: fnt,}
+  
+        var geoText = new THREE.TextGeometry(xSize.toString(), params);
+  
+        var  textZ = new THREE.Mesh(geoText, matText);
+        geoText.computeBoundingSphere();
+        textZ.translateZ(-5 - 2 *  geoText.boundingSphere.radius);
+        textZ.translateX(-geoText.boundingSphere.radius);
+        textZ.translateY(1.0);
+        textZ.rotateX(-Math.PI / 2);
+  
+        geoText = new THREE.TextGeometry(zSize.toString(), params);
+        var  textX = new THREE.Mesh(geoText, matText);
+        geoText.computeBoundingSphere();
+        textX.translateX(-5 - 2 *  geoText.boundingSphere.radius);
+        textX.translateZ(-geoText.boundingSphere.radius);
+        textX.translateY(1.0);
+        
+        textX.rotateX(-Math.PI / 2);
+        textX.rotateZ(-Math.PI / 2);
+  
+        geoText = new THREE.TextGeometry(bldg_height.toString(), params);
+        geoText.computeBoundingSphere();
+  
+        var  textY = new THREE.Mesh(geoText, matText);
+        textY.translateX(-5 - geoText.boundingSphere.radius);
+        textY.translateZ(-5  - geoText.boundingSphere.radius);
+        textY.translateY(bldg_height / 10 + 1.5  * geoText.boundingSphere.radius  );
+        geoText.computeBoundingSphere();
+        textY.rotateY(-Math.PI / 4);
+  
+  
+        scene.add(textZ, textX, textY);
+    })
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
   });
+
+
+
+
   
 }
 
