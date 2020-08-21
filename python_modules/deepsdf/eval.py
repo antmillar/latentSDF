@@ -57,6 +57,7 @@ def generateModel(sliceVectors, height, taper, rotation, model_path):
 
     print("generating 3d model...")
     numSlices = height
+    slice_count = len(sliceVectors)
  
     print("loading model...")
     # model_path = os.path.join(dir_model, "8floorplans.pth")
@@ -66,7 +67,6 @@ def generateModel(sliceVectors, height, taper, rotation, model_path):
     model = deepSDFCodedShape()#.cuda()
     model.load_state_dict(torch.load(model_path, map_location=device))
 
-    print("ASDASDASDASD" , numSlices)
 
     def createSlice(pts, latent):
 
@@ -200,13 +200,14 @@ def generateModel(sliceVectors, height, taper, rotation, model_path):
     contours = []
     floors = []
     floor_labels = []
-    floor_height = 2
     samples = 400
     contour_every = 3
     floor_every = 1
     level = 0.0
 
-
+    floor_every = slice_count // height
+    floor_height = 1
+    slice_height = 1 / floor_every
 
   #ADDING FLOORS
     ##funny indexing due to extra ends added to close form
@@ -227,7 +228,7 @@ def generateModel(sliceVectors, height, taper, rotation, model_path):
         for floor in floor_contours:
 
 
-            test = np.c_[floor, idx * floor_every * np.ones((floor.shape[0], 1))]
+            test = np.c_[floor, idx * floor_height * np.ones((floor.shape[0], 1))]
             # test[:,2] += 1 #subtract one for the extra base plane
             test[:,2]*= floor_height #need to scale up the height
             test[:,0] -= 25.0
@@ -417,125 +418,6 @@ def generateModel(sliceVectors, height, taper, rotation, model_path):
     cores = intersection
 
 
-    # mask2 = vals < 0
-    # mask3 = vals < -0.2
-
-
-    # from PIL import Image
-    # im = Image.fromarray(mask2.astype(np.int32) * 255).convert('L')
-    # im2 = Image.fromarray(mask3.astype(np.int32) * 255).convert('L')
-
-    # im.save("your_file2.png")
-    # im2.save("your_file3.png")
-
-
-
-
-    # circle = Circle(np.array([res//2, res//2]), core_diameter)
-    # circle = Circle(core_center, core_diameter)
-
-
-    # square = Box(core_diameter, core_diameter, core_center)
-
-    # cores  = [square.field.reshape(res, res) for i in range(numSlices)]
-
-      # [52 * circle.field.reshape(res, res)]
-    # core = np.stack(core)
-
-    # intersection = np.maximum(core * -1, stacked)
-    # stacked = intersection
-    #find the level with the lowest how many
-
-    #use this level as core level
-
-
-
-    #single core, biggest contour
-    # for sdf, lbl in zip(slices[1:-1], floor_labels):
-
-
-
-    # #create cores
-    # for sdf, lbl in zip(slices[1:-1], floor_labels):
-
-    #     core = sdf.detach().cpu().clone()
-    #     num_labels = len(np.unique(lbl))
-    #     # print(num_labels)
-    #     minDistance = torch.min(sdf)
-    #     maxDistance = torch.max(sdf)
-    #     targetMin = -0.1
-
-#         for i in range(1, num_labels):
-#         #0th group is outside, so don't change for now
-
-
-#           group = lbl == i
-#           # inv = np.invert(group)
-          
-#           group_min = np.min(np.multiply(group, core).cpu().detach().numpy())  
-#           # minDistance = torch.min(sdf)
-#           minDistance = group_min
-#           maxDistance = torch.max(sdf)
-#           # print(i, minDistance, maxDistance)
-# #  abs(minDistance - targetMin)
-#           max_bump = max(0, (targetMin - group_min))
-#           print(max_bump)
-#           # max_bump = i * 0.08
-#           # print(max_bump - 0.15)
-#           # temp = core + 0.15
-#           max_bump = np.round(max_bump, 1)
-#           max_bump = min(0.20, max_bump)
-#           # group_bumped = np.multiply(group, temp)  + np.multiply(inv, core)
-#           core += group * max_bump
-#           # core = group_bumped
-#           # coreScale = 0.5
-#           # core = sdf + coreScale * abs(minDistance)
-#           # core[core < -0.2] = -0.2
-#           # core = sdf + abs(minDistance - targetMin)
-#           # print(torch.min(core))
-        
-#         # group = lbl == 0
-        
-#         # core += group * max_bump
-#         cores.append(core)
-
-        
-    # newIdx = len(contours)
-    # xSlices = []
-    # for i in range(stacked.shape[2]):
-    #   xSlices.append(stacked[:,:,i])
-
-
-    # for idx, s in enumerate(xSlices[2::contour_every*2]):
-        
-    #     level = -idx * taper/len(xSlices)
-
-    #     #after first point and checking previous layer not empty
-    #     if(idx > 0 and len(contours[newIdx + idx - 1]) > 0):
-    #         start_point = contours[newIdx + idx - 1][0][0][:2] #previous layer first coordinate
-    #         # slice_contours = extractContours(s, samples, level)
-    #         slice_contours = extractContours(s, samples, level, start_point)
-
-    #     else:
-    #         slice_contours = extractContours(s, samples, level)
-
-    #     a = []
-    #     for contour in slice_contours:
-
-    #         #swap this column as we are slicing vertically now
-              
-    #           test = np.c_[contour, 1 * idx * contour_every*2 * np.ones((contour.shape[0], 1))]
-
-
-    #           test[:,[0, 2]] = test[:,[2, 0]]
-    #           test[:,[0, 1]] = test[:,[1, 0]]
-    #           test[:,2]*= floor_height #need to scale up the height
-    #           test = test.tolist()
-    #           a.append(test)
-
-    #     contours.append(a)
-
-
 
     #filter out empty contours/floors
     floors = [item for item in floors if item != []]
@@ -543,92 +425,6 @@ def generateModel(sliceVectors, height, taper, rotation, model_path):
     contours = [item for item in contours if item != []]
 
 
-    #convert contours to JSON to be loaded in threeJS
-    # contour = contours[1][0].tolist()
-    # contour = json.dumps(data)
-
-    # with open(os.path.join(dir_output, 'data.json'), 'w') as f:
-    #   json.dump(data, f)
-
-    # mesh = om.PolyMesh()
-
-    # for idx in range(len(contours) - 1):
-
-    #     for idx2, contour in enumerate(contours[idx]):
-
-    #         handles1 = []
-    #         handles2 = []
-
-    #         next_layer_contours = (contours[idx + 1][i] for i in range(len(contours[idx + 1])))
-
-    #         #something to fix here when tapering
-    #         combined = np.vstack(next_layer_contours)
-
-
-    #         #in the case where the model splits into more than one contour need to pick the order to pair up the points
-    #         if(len(contours[idx + 1]) > len(contours[idx]) ):
-
-    #             #merge the two new slices into one array, need to make this handle more
-    #             # combined = np.vstack((contours[idx + 1][idx2], contours[idx + 1][idx2 + 1]))
-    #             previousSlice = contours[idx][idx2]
-
-    #         #find nearest point in new layer and add to handles
-    #             for coord in combined:
-
-    #                 #select item from first slice
-    #                 vh = mesh.add_vertex(coord)
-    #                 handles2.append(vh)
-                    
-    #                 #select closest item from second slice and remove
-    #                 i = getIndex(previousSlice, coord)
-    #                 previousSlice, coord2 = poprow(previousSlice, i)
-    #                 vh2 = mesh.add_vertex(coord2)
-    #                 handles1.append(vh2)
-
-    #         else:
-
-    #             #check if next layer has less contours
-    #             # if(idx2 < len(contours[idx + 1])):
-    #                 # nextSlice = contours[idx + 1][idx2]
-    #             nextSlice = combined
-
-    #             for coord in contour:
-    #                 vh = mesh.add_vertex(coord)
-    #                 handles1.append(vh)
-
-    #                 i = getIndex(nextSlice, coord)
-    #                 nextSlice, coord2 = poprow(nextSlice, i)
-    #                 vh2 = mesh.add_vertex(coord2)
-    #                 handles2.append(vh2)
-
-    #             # for coord in contours[idx + 1][idx2]:
-    #             #     vh = mesh.add_vertex(coord)
-    #             #     handles2.append(vh)
-
-    #             # #deal with case where the next level has a different number of contours
-
-
-    #         for a in range(len(handles1)):
-    #           mesh.add_face(handles1[a % len(handles1)], handles1[(a+1) % len(handles1)],  handles2[(a + 1) % len(handles2)], handles2[a % len(handles2)])
-
-    # #close ends
-
-
-    # for contour in contours[0]:
-    #     handles1 = []
-    #     for coord in contour:
-    #         vh = mesh.add_vertex(coord)
-    #         handles1.append(vh)
-
-    #     mesh.add_face(handles1)
-
-
-    # for contour in contours[len(contours) - 1]:
-    #     handles1 = []
-    #     for coord in contour:
-    #         vh = mesh.add_vertex(coord)
-    #         handles1.append(vh)
-    #     mesh.add_face(handles1)
 
     ##flattens an irregular nested list
     import collections
@@ -666,12 +462,12 @@ def generateModel(sliceVectors, height, taper, rotation, model_path):
 
     # print(verts.shape)
     verts[:,0] -= 1
-    verts[:,0] *= floor_height
+    verts[:,0] *= slice_height
     verts[:,1] -= 25.0 #translate to threejs space
     verts[:,2] -= 25.0
 
     # vertsCore[:,0] -= 1
-    vertsCore[:,0] *= floor_height
+    vertsCore[:,0] *= slice_height
     vertsCore[:,1] -= 25.0 #translate to threejs space
     vertsCore[:,2] -= 25.0
 
@@ -700,6 +496,7 @@ def generateModel(sliceVectors, height, taper, rotation, model_path):
     Details = namedtuple("Details", ["Floors", "Taper", "Rotation", "MaxCoverage", "MinCoverage"])
     model_details = Details(numSlices, taper, rotation, maxCoverage, minCoverage)
 
+    print(floors[49])
     return fn, contours, floors, model_details
 
 

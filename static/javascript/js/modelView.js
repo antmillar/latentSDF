@@ -84,48 +84,19 @@ canvas = document.querySelector('#c');
 
     let model = obj.children[0];
     console.log("core model : " , model)
+     
     model.material = matCore;
 
-    model.scale.set(0.1,0.1,0.1);
-    model.rotation.z = Math.PI / 2; 
-
-    scene.add(model);
-
-  })
-
-
-
-  // LOAD THE CORE OBJ FILE
-  let contextLoader = new OBJLoader2();
-  let fn_cont = "/static/models/inputs/context.obj"
-  
-  contextLoader.load(fn_cont, function(obj){
-
-    let matContext = new THREE.MeshPhysicalMaterial( {
-      color: 0xAAAAAA,
-      // side: THREE.DoubleSide,
-    } );
-
+    model.geometry.scale(0.1,0.1,0.1);
     
-    let model = obj.children[0];
-    console.log("context model : " , model)
-    model.material = matContext;
-    var box = new THREE.Box3().setFromObject( model );
-    var center = new THREE.Vector3();
-    box.getCenter( center );
-    model.position.sub( center ); // center the model
-    model.rotation.y = Math.PI;   // rotate the model
-    model.translateY(6.15)
-    model.translateX(-16)
-    model.translateZ(-10)
-
-
-    model.scale.set(50,50,50);
-    // model.rotation.z = Math.PI / 2; 
+    model.geometry.rotateZ( Math.PI / 2); 
 
     scene.add(model);
 
   })
+
+
+
 
 
   // LOAD THE BUILDING, FLOORS and CONTOURS
@@ -170,8 +141,8 @@ canvas = document.querySelector('#c');
     ground.receiveShadow = true;
 
     //scaling/rotating
-    model.scale.set(0.1,0.1,0.1);
-    model.rotation.z = Math.PI / 2; 
+    model.geometry.scale(0.1,0.1,0.1);
+    model.geometry.rotateZ( Math.PI / 2); 
 
     ground.rotation.x = -Math.PI / 2; 
 
@@ -206,12 +177,17 @@ canvas = document.querySelector('#c');
         let matEdge = new THREE.LineBasicMaterial( { color: 0x111111, linewidth:0.75} )
         let edges = new THREE.EdgesGeometry( geometryFloor);
         let edge = new THREE.LineSegments( edges, matEdge );
+
+        geometryFloor.scale(0.1,0.1,0.1);
+        geometryFloor.rotateZ( Math.PI ); 
+        geometryFloor.rotateX( -Math.PI / 2); 
+        geometryFloor.translate(0,   points[0].z / 10.0, 0);
+
+
         let floor = new THREE.Mesh( geometryFloor, matGlass );
         floor.castShadow = true;
-        floor.scale.set(0.1,0.1,0.1);
-        floor.rotation.x = Math.PI / 2; 
-        floor.rotation.y = Math.PI; 
-        floor.translateZ(points[0].z / 10.0);
+
+
   
         edge.scale.set(0.1,0.1,0.1);
         edge.rotation.x = Math.PI / 2; 
@@ -221,7 +197,6 @@ canvas = document.querySelector('#c');
         scene.add( floor, edge );
       }
     }
-
     //create vertical contours in building
     for(let j = 0; j < contours.length; j++)
     {
@@ -239,9 +214,9 @@ canvas = document.querySelector('#c');
       let geometryContour = new THREE.BufferGeometry().setFromPoints( curvePts );
       
       let contourLine = new THREE.Line( geometryContour, matContours );
-      contourLine.scale.set(0.1,0.1,0.1);
-      contourLine.rotation.x = Math.PI / 2; 
-      contourLine.rotation.y = Math.PI; 
+      contourLine.geometry.scale(0.1,0.1,0.1);
+      contourLine.geometry.rotateX( -Math.PI / 2); 
+      contourLine.geometry.rotateY(Math.PI); 
 
       // contourLine.updateMatrix();
 
@@ -249,9 +224,18 @@ canvas = document.querySelector('#c');
 
       scene.add(contourLine)
 
-      generate(contourLine)
+
     }
-    scene.add(model, ground);
+
+    generateInteriorModel(scene)
+
+    scene.add(model);
+
+    generateExteriorModel(model)
+
+
+    // scene.add(ground)
+
 
     bbox = new THREE.Box3().setFromObject( model );
     var size = bbox.getSize();
@@ -351,29 +335,50 @@ canvas = document.querySelector('#c');
     })
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+    
 
 
   });
 
 
 
+  if(window.globals.show_context == "true")
+  {
 
+    // LOAD THE CORE OBJ FILE
+    let contextLoader = new OBJLoader2();
+    let fn_cont = "/static/models/inputs/context.obj"
+
+    contextLoader.load(fn_cont, function(obj){
+
+      let matContext = new THREE.MeshPhysicalMaterial( {
+        color: 0xAAAAAA,
+        // side: THREE.DoubleSide,
+      } );
+
+      
+      let model = obj.children[0];
+      console.log("context model : " , model)
+      model.material = matContext;
+      var box = new THREE.Box3().setFromObject( model );
+      var center = new THREE.Vector3();
+      box.getCenter( center );
+      model.position.sub( center ); // center the model
+      model.rotation.y = Math.PI;   // rotate the model
+      model.translateY(6.15)
+      model.translateX(-16)
+      model.translateZ(-10)
+
+
+      model.scale.set(50,50,50);
+
+      scene.add(model);
+
+    })
+
+
+  }
+  
   
 }
 
@@ -387,16 +392,24 @@ function animate() {
 
 }
 
-var dload
+var dloadInterior
+var dloadExterior
 
-function generate(da) {
+function generateInteriorModel(data) {
 
   // Instantiate an exporter
 var exporter = new OBJExporter();
 // Parse the input and generate the ply output
-var data = exporter.parse( da );
+dloadInterior = exporter.parse( data );
 
-dload = data
+}
+
+function generateExteriorModel(data) {
+
+  // Instantiate an exporter
+var exporter = new OBJExporter();
+// Parse the input and generate the ply output
+dloadExterior = exporter.parse( data );
 
 }
 
@@ -415,9 +428,17 @@ function download(filename, text) {
 }
 
 
-document.querySelector("#download").onclick = function()
+document.querySelector("#downloadInterior").onclick = function()
   {
-    console.log(dload)
-    download("test.obj", dload)
+    console.log(dloadInterior)
+    download("interior.obj", dloadInterior)
 
   }  
+
+
+document.querySelector("#downloadExterior").onclick = function()
+{
+  console.log(dloadExterior)
+  download("exterior.obj", dloadExterior)
+
+}  

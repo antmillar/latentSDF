@@ -49,6 +49,7 @@ coverage = ""
 latent_loaded = False
 contours = False
 floors = False
+show_context = "false"
 model_details = Details(0,0,0,0,0)
 latents = np.empty([0])
 annotations = np.empty([0])
@@ -151,7 +152,7 @@ def upload_file():
 
             print("Invalid File Type")
         
-        return redirect(url_for('main', latent_bounds = list(latent_bounds), img_source = img_source, img_source_hm = img_source_hm, active_model = active_model, height = height, coverage = coverage, contours = contours, floors = floors, model_details = model_details, annotations = annotations))
+        return redirect(url_for('main', latent_bounds = list(latent_bounds), img_source = img_source, img_source_hm = img_source_hm, active_model = active_model, height = height, coverage = coverage, contours = contours, floors = floors, model_details = model_details, annotations = annotations, show_context=show_context))
         # return render_template('main.html', latent_bounds = list(latent_bounds), img_source = img_source, img_source_hm = img_source_hm, active_model = active_model, height = height, coverage = coverage, contours = contours, floors = floors, model_details = model_details, annotations = annotations )
 
 
@@ -187,7 +188,7 @@ def main():
         #generate 3d model
         if(request.form.get("generateSlices")):
 
-            global height
+            global height, show_context
             height = int(request.form.get("modelHeight"))
 
             try:
@@ -202,11 +203,15 @@ def main():
             except:
                 rotation = 0
 
+            show_context = request.form.get("show_context")
+            # show_context = "BLA"
+
             sliceVectors = request.form.get("slices")
             sliceVectors = sliceVectors.split(",")
             coords = np.zeros((len(sliceVectors)//2, 2))
             coords[:,0] = sliceVectors[::2]
             coords[:,1] = sliceVectors[1::2]
+            print(len(coords))
 
             torch.cuda.empty_cache()
             global contours, floors, model_details
@@ -232,7 +237,7 @@ def main():
             latent_space.updateLatent(latent_bounds, torch_model, latents, coverage)
 
 
-    return render_template('main.html', latent_bounds = list(latent_bounds), img_source = img_source, img_source_hm = img_source_hm, active_model = active_model, height = height, coverage = coverage, contours = contours, floors = floors, model_details = model_details, annotations = annotations)
+    return render_template('main.html', latent_bounds = list(latent_bounds), img_source = img_source, img_source_hm = img_source_hm, active_model = active_model, height = height, coverage = coverage, contours = contours, floors = floors, model_details = model_details, annotations = annotations, show_context=show_context)
 
 # #route to hold the latest status 
 # @app.route('/progress/<int:thread_id>')

@@ -19,7 +19,8 @@
   var model_details =  {{ model_details|tojson }};
   var canvas_height = 700;
   var canvas_width = 700;
-
+  var show_context = {{ show_context|tojson }}
+  var slice_count =  1;
 
 
   window.globals = {
@@ -34,7 +35,8 @@
     contours: contours,
     floors: floors,
     discrete: false,
-
+    show_context: show_context,
+    slice_count:slice_count,
   }
 </script>
 
@@ -96,11 +98,15 @@
     
       <div class ="row">
         <div class="col-md-6 offset-3 text-center  " >
-          <button type="button" class="btn-sm inputBox "  id = "download" name = "download">Download 3D Model</button>
+          <button type="button" class="btn-sm inputBox "  id = "downloadInterior" name = "downloadInterior">Download Interior 3D Model</button>
         </div>
       </div>
     
-    
+      <div class ="row">
+        <div class="col-md-6 offset-3 text-center  " >
+          <button type="button" class="btn-sm inputBox "  id = "downloadExterior" name = "downloadExterior">Download Exterior 3D Model</button>
+        </div>
+      </div>
     
     </div>  
 
@@ -171,10 +177,19 @@
 
           <div class="form-group form-inline">
             <div class="col-6">
-                <small for="height">Model Floors</small>
+                <small for="height">Model Height</small>
             </div>
             <div class="col-6">
               <input type="text" class="inputBox text-center" id="height" name="height" >
+            </div>
+          </div>
+
+          <div class="form-group form-inline">
+            <div class="col-6">
+                <small for="slice_count">Slices Per Floor</small>
+            </div>
+            <div class="col-6">
+              <input type="text" class="inputBox text-center" id="slice_count" name="slice_count"  value = 1>
             </div>
           </div>
 
@@ -253,6 +268,14 @@
         {% endfor %}
         <br>
 
+        <div class="form-group form-inline">
+          <div class="col-6">
+            <small for="taper">Show Context</small>
+          </div>
+          <div class="col-6">
+            <input type="checkbox" class="inputBox text-center" id="context" name="context"  >
+          </div>
+        </div>
 
   </div>
 
@@ -280,6 +303,7 @@
     <input type="hidden" id = "modelHeight" name = "modelHeight">
     <input type="hidden" id = "modelTaper" name = "modelTaper">
     <input type="hidden" id = "modelRotation" name = "modelRotation">
+    <input type="hidden" id = "show_context" name = "show_context">
 
 
 </form>
@@ -287,12 +311,6 @@
 <form action="" method="POST" id = "btnConstraint">
 
   <input type="hidden" id = "scoverage" name = "scoverage">
-
-</form>
-
-<form action="" method="POST" id = "btnDownload">
-
-  <input type="hidden" id = "downloadModel" name = "downloadModel">
 
 </form>
 

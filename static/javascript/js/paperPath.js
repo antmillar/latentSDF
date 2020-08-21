@@ -211,7 +211,7 @@ function onMouseDown(event) {
         path.add(event.point)
         path.smooth() //need to contrain values on path within the range if want to use this.
 
-        extractSlices(globals.height, nodes);
+        extractSlices(globals.slice_count * globals.height, nodes);
     }
     
     //on right click
