@@ -1,406 +1,105 @@
-export default class Controller
-{
+//populate values
 
-  constructor(view, model)
-  {
-    this.gui = new dat.GUI({width : '400px'});
-    this.view = view;
-    this.model = model;
-    this.btnLoad = document.querySelector("#btnLoad");
-    this.uploadInput = document.querySelector("#uploadInput");
-    this.btnMesh = document.querySelector('#btnMesh');
-    this.btnModel = document.querySelector("#btnModel");
-    this.sceneData = document.querySelector("#metadata");
-    this.UI = {};
-    this.setupUI();
-  }
+document.querySelector("#xMin").value = latent_bounds[0];
+document.querySelector("#xMax").value = latent_bounds[1];
+document.querySelector("#yMin").value = latent_bounds[2];
+document.querySelector("#yMax").value = latent_bounds[3];
+document.querySelector("#height").value = height;
 
-  setupUI()
-  {
-    var that = this;
-    var UI = this.UI;
+document.querySelector("#c").height = canvas_height;
+document.querySelector("#c").width = canvas_width;
+// document.querySelector("#paperCanvas").height = canvas_height
+// document.querySelector("#paperCanvas").height = canvas_width
 
-    const controls = {
-      loadFile: function() {that.uploadInput.click()},
-      createMesh : function() {that.model.createMesh()},
-      runModel: function() {that.model.runModel()},
-      removeModel: function() {that.clearView(); that.model.removeModel()},
-      downloadMesh: function() {that.model.downloadMesh()},
-    };
+document.querySelector("#coverage").value = coverage;
+document.querySelector("#context").checked = show_context == "true";
 
-    UI.displayInput = {display: false};
-    UI.displayLabel = {display : false};
-    UI.displayMesh = {display : false};
+//initialisation routine
+$(document).ready(init);
 
-    //listens for change in load file form
-    this.uploadInput.addEventListener('change', () => that.model.uploadFile());
+function init(jQuery) {
 
-    //GUI SETUP
+  // generate model
+  $("#gen").on('click', (e) => {
 
-    //DATA FOLDER
-
-    //REMOVAL FOLDER
-    UI.folderRemove = this.gui.addFolder('Data');
-    UI.folderRemove.add(controls, 'loadFile').name("Load OBJ File");
-    UI.folderRemove.add(controls, 'removeModel').name("Remove Model");
-    
-    //SCENE FOLDER
-    UI.folderInputs = this.gui.addFolder('Scenes');
-    UI.dropdownInputs = UI.folderInputs.add({fileName : ""}, 'fileName', Object.keys(that.model.scenes)).name("File Name");
-    UI.toggleInputs = UI.folderInputs.add(UI.displayInput, 'display').name("Show Scene");
-    UI.toggleInputs.onChange((value) => this.displayModel(value, that.model.activeScene, "input"));
-    UI.toggleLabels = UI.folderInputs.add(UI.displayLabel, 'display').name("Show Labels");
-    UI.toggleMesh = UI.folderInputs.add(UI.displayMesh, 'display').name("Show Mesh");;
-
-    // DISPLAY FOLDER
-    UI.folderDisplay = this.gui.addFolder('Display Settings');
-    //create color picker
-    UI.displayOpacity = UI.folderDisplay.add({opacity : 0.1}, 'opacity', 0.0, 0.5).name("Scene Opacity");
-    UI.displayOpacity.onChange((value) => this.updateOpacity(value));
-    UI.displayPointSize = UI.folderDisplay.add({pointSize : 2.0}, 'pointSize', 0.0, 20.0).name("Labels Point Size");
-    UI.displayPointSize.onChange((value) => this.updatePointSize(value));
-
-    //MODEL FOLDER
-    UI.folderModel = this.gui.addFolder('Segmentation');
-    UI.folderModel.add(controls, 'runModel').name("Run Model");
-    
-    //MESH FOLDER
-    UI.folderMesh = this.gui.addFolder('Mesh Reconstruction');
-    UI.folderMesh.add(controls, 'createMesh').name("Create Mesh");
-    UI.folderMesh.add(controls, 'downloadMesh').name("Download Mesh");
-
-    //LABELS FOLDER
-    UI.folderLabels;
-    
-    //OPEN FOLDERS
-    UI.folderRemove.open();
-    UI.folderInputs.open();
-    UI.folderDisplay.open();
-    UI.folderModel.open();
-    UI.folderMesh.open();
-
-
-    this.listen();
-  }
-
-  //MENU LISTENER
-  listen()
-  {
-    var that = this;
-    var UI = this.UI;
-
-    //when loaded event sent update the dropdown list
-    this.btnLoad.addEventListener('loaded', function (e) {
-
-      UI.dropdownInputs = UI.dropdownInputs.options(Object.keys(that.model.scenes))
-      UI.dropdownInputs.name('File Name');
-      //whenever dropdown is updated update the UI as follows...
-      UI.dropdownInputs.onChange(function(value) {
-              
-        that.clearView();
-
-        //specify new active scene
-        that.model.activeScene = that.model.scenes[value];
-        that.view.scene.add(that.model.activeScene.inputPLY);
-
-        //reset display booleans
-        UI.displayInput.display = true;
-        UI.displayLabel.display = false;
-        UI.displayMesh.display = false;
-
-        //add display toggles
-        that.updateTogglesDisplay();
-
-        //display the label filters if available
-        that.updateTogglesLabels();
-
-        //display the point size controller if available
-        that.updateTogglesPointSize();
-
-        // //update the metadata for the scene
-        that.updateSceneData();
-
-
-
-    }); 
-  }, false);
-}
-
-    //Add and Remove models from view
-    displayModel(value, activeModel, type)
-    {
-      if(activeModel)
+      if(window.globals.slices.length == 0)
+        {
+          alert("Cannot Build Model without a Path Defined");
+        }
+      else if( document.querySelector("#taper").value > 10.0)
       {
-        if(value)
-        {
-          if(type == "input")
-          {
-            this.view.scene.add( activeModel.inputPLY);
-            console.log("input")
-          }
-          else if(type == "labels")
-          {
-            this.view.scene.add( activeModel.labelledPLY);
-          }
-          else if(type == "mesh")
-          {
-            this.view.scene.add( activeModel.mesh);
-          }
-        }
-        else
-        {
-          if(type == "input")
-          {
-            this.view.scene.remove( activeModel.inputPLY);
-          }
-          else if(type == "labels")
-          {
-            this.view.scene.remove( activeModel.labelledPLY);
-          }
-          else if(type == "mesh")
-          {
-            this.view.scene.remove( activeModel.mesh);
-          }
-        }
+        alert("Cannot taper more than last 10% of slices");
       }
-    }
-
-    
-  //change the color of the active objet
-  updateColor(value)
-  {
-    console.log("Changing Color of Active Model");
-
-    if(this.model.activeScene){
-
-      var colors = this.model.activeScene.inputPLY.geometry.attributes.color;
-
-      //loop over the color attributes
-      for ( var i = 0; i < colors.count; i ++ ) {
-      
-        var color = new THREE.Color(value);
-        colors.setXYZ( i, color.r, color.g, color.b);
-      }
-      colors.needsUpdate = true;
-    }
-  }
-
-
-  //toggles point display by label via shaders
-  togglePoints(bool, label)
-  {
-
-    this.model.activeScene.labelledPLY.display[label] = bool;
-
-    var colors = this.model.activeScene.labelledPLY.geometry.attributes.color;
-    var pointSize = this.model.activeScene.labelledPLY.geometry.attributes.pointSize;
-    
-    colors.needsUpdate = true;
-    pointSize.needsUpdate = true;
-
-    const key = Object.keys(this.model.labelMap).find(key => this.model.labelMap[key] === label)
-    const vals = key.slice(1, key.length-1).split(", ");
-    var cols = vals.map(Number);
-    var cols = cols.map(x => x / 255.0);
-
-    var onColor = new THREE.Color().fromArray(cols);
-
-    //loop over the color attributes
-    for ( var i = 0; i < colors.count; i ++ ) {
-
-      if(this.model.activeScene.labelledPLY.labelledPoints[i] === label)
+      else if( document.querySelector("#taper").value < 0)
       {
-        if(bool){
-          pointSize.setX(i, this.model.defaultPointSize);
-        }
-        else
-        {
-          pointSize.setX(i, 0.0);
-        }
+        alert("Cannot have negative taper");
       }
-    }
-  
-
-    this.model.activeScene.labelledPLY.toggles[label] = bool;
-  }
-
-
-  //update the point size attribute which is passed to the shader
-  updatePointSize(pointSize)
-  {
-    if(this.model.activeScene.labelledPLY){
-
-      var attrPointSize = this.model.activeScene.labelledPLY.geometry.attributes.pointSize;
-      this.model.defaultPointSize = pointSize;
-      attrPointSize.needsUpdate = true;
-
-      //reset the toggle labels to true
-
-      //loop over the point size attributes
-      for ( var i = 0; i < attrPointSize.count; i++ ) {
-
-          attrPointSize.setX(i, pointSize);
-        
+      else if( document.querySelector("#slice_count").value < 1)
+      {
+        alert("Cannot have less than 1 slice per unit height");
       }
+      else if(!Number.isInteger(window.globals.slice_count)) //COULD BE BETTER
+      {
+        alert("Slice per floor must be integer");
 
-      this.updateTogglesLabels();
-    }
-  }
-
-  //changes opacity of points in cloud
-  updateOpacity(opacity)
-  {
-    if(this.model.activeScene){
-
-      var attrOpacity = this.model.activeScene.inputPLY.geometry.attributes.opacity;
-      this.model.defaultOpacity = opacity;
-      attrOpacity.needsUpdate = true;
-      
-      //loop over opacity attribute
-        for ( var i = 0; i < attrOpacity.count; i++ ) {
-
-            attrOpacity.setX(i, opacity);
-          
-        }
-    }
-  }
-
- //updates the label filters in the menu
-  updateTogglesLabels()
-  {
-    try
-    {
-      this.gui.removeFolder("Filter by Labels");
-    }
-    catch
-    {}
-
-    //if labelled point cloud present
-    if(this.model.activeScene.labelledPLY) {
-
-      this.UI.folderLabels = this.gui.addFolder('Filter by Labels');
-      this.UI.folderLabels.open()
-
-      //by default all labels enabled
-      for(const key of Object.keys(this.model.activeScene.labelledPLY.display)){
-        this.model.activeScene.labelledPLY.display[key] = true;
       }
+      else
+      {
+        document.querySelector("#slices").value = globals.slices;
+        document.querySelector("#modelHeight").value = globals.height;
+        document.querySelector("#modelTaper").value = document.querySelector("#taper").value
+        document.querySelector("#modelRotation").value = document.querySelector("#rotation").value
+        document.querySelector("#show_context").value = $('#context').prop('checked')
 
-      //add on change to each label tick box
-      for(const key of Object.keys(this.model.activeScene.labelledPLY.display)){
-        this.UI.folderLabels.add(this.model.activeScene.labelledPLY.display, key).onChange((bool) => this.togglePoints(bool, key));;
+        document.querySelector("#btnGenerate").submit();
       }
+    
+  });
 
-    }
-  }
+  //update height
+  $('#height').on('input', function() {
+    window.globals.height = document.querySelector("#height").value;
+    globals.getSlices(globals.height)
+  });
 
-  //add the display toggles
-  updateTogglesDisplay()
-  {
+  //update slices
+  $('#slice_count').on('input', function() {
+    window.globals.slice_count = parseInt(document.querySelector("#slice_count").value);
+    console.log(window.globals.slice_count)
+  });
 
-    let UI = this.UI;
+  //update discrete on/off
+  $('#discrete').on('change', function() {
+    window.globals.discrete  = $('#discrete').prop('checked')
+    console.log($('#discrete').prop('checked'))
+  });
 
-    //add display toggle for input
-    UI.folderInputs.remove(UI.toggleInputs)
-    UI.toggleInputs = UI.folderInputs.add(UI.displayInput, 'display').name("Show Input");
-    UI.toggleInputs.onChange((value) => this.displayModel(value, this.model.activeScene, "input"));
+  //update constraint
+  $("#constraint").on('click', (e) => {
+      document.querySelector("#scoverage").value = globals.coverage;
+      document.querySelector("#btnConstraint").submit();
+  });
 
-    try
-    {
-      UI.folderInputs.remove(UI.toggleLabels)
-    } 
-    catch
-    {}
+  //update coverage value
+  $('#coverage').on('input', function() {
+    window.globals.coverage = document.querySelector("#coverage").value;
+  });
 
-    try
-    {
-      UI.folderInputs.remove(UI.toggleMesh)
-    } 
-    catch
-    {}
+  //load torch model 
+  $("#file").on('change', (e) => {
 
-    //add display toggle for labels if present
-    if(this.model.activeScene.labelledPLY)
-    {
-      UI.toggleLabels = UI.folderInputs.add(UI.displayLabel, 'display').name("Show Labels");
-      UI.toggleLabels.onChange((value) => this.displayModel(value, this.model.activeScene, "labels"));
-    }
- 
-
-    //add display toggle for mesh if present
-    if(this.model.activeScene.mesh)
-    {      
-      UI.toggleMesh = UI.folderInputs.add(UI.displayMesh, 'display').name("Show Mesh");
-      UI.toggleMesh.onChange((value) => this.displayModel(value, this.model.activeScene, "mesh"));
-    }
-  }
-
-  //updates the point size menu item
-  updateTogglesPointSize()
-  {
-    let UI = this.UI;
-
-    try{        
-      UI.folderDisplay.remove(UI.displayPointSize);
-    } 
-    catch 
-    {}
-    if(this.model.activeScene.labelledPLY){
-
-      UI.displayPointSize = UI.folderDisplay.add({pointSize : 2.0}, 'pointSize', 0.0, 20.0).name("Labels Point Size");
-      UI.displayPointSize.onChange((value) => this.updatePointSize(value));
-    }
-  }
-
-  //updates the HUD info bottom left of screen to show model details
-updateSceneData()
-{
-  console.log(this.model.activeScene)
-  let unitsVol = " m<sup>3</sup>"
-  let unitsDens = " pts / m<sup>3</sup>"
-  let inputData = 
-   
-    "Input Point Count - " + this.model.activeScene.inputPLY.ptCount + "<br>" +
-    "Input Point Volume - " + this.model.activeScene.inputPLY.volume.toFixed(2) +  unitsVol + "<br>" + 
-    "Input Point Density - " + this.model.activeScene.inputPLY.density.toFixed(2) +  unitsDens + "<br>" 
+    document.querySelector("#loadData").submit();
+  });
 
 
-  let labelledData = "";
-  if(this.model.activeScene.labelledPLY){
-    labelledData = "<br>" + 
-    "Labelled Point Count - "  + this.model.activeScene.labelledPLY.ptCount + "<br>" + 
-    "Labelled Point Volume - " + this.model.activeScene.labelledPLY.volume.toFixed(2)  + unitsVol + "<br>" + 
-    "Labelled Point Density - " + this.model.activeScene.labelledPLY.density.toFixed(2)  + unitsDens 
-  }
+  //on click for latent space update
+  $("#latent").on('click', (e) => {
+    document.querySelector("#latentForm").submit();
+  });
 
-  this.sceneData.innerHTML = inputData + labelledData;
-
-  }
-
-//clear all models in view
-clearView()
-{
-  //if active input model present, remove it
-  if(this.model.activeScene)
-  {
-    if(this.model.activeScene.inputPLY) this.view.scene.remove(this.model.activeScene.inputPLY);
-    if(this.model.activeScene.labelledPLY) this.view.scene.remove(this.model.activeScene.labelledPLY);
-    if(this.model.activeScene.mesh) this.view.scene.remove(this.model.activeScene.mesh);
-  }
-}
-
-}
-//helper functions
-
-//add remove folder to dat gui
-//https://stackoverflow.com/questions/14710559/dat-gui-how-to-hide-menu-with-code
-dat.GUI.prototype.removeFolder = function(name) {
-  var folder = this.__folders[name];
-  if (!folder) {
-    return;
-  }
-  folder.close();
-  this.__ul.removeChild(folder.domElement.parentNode);
-  delete this.__folders[name];
-  this.onResize();
+  //on click to update design analysis
+  $("#analysis").on('click', (e) => {
+    
+    document.querySelector("#launchAnalysis").submit();
+  });
 }

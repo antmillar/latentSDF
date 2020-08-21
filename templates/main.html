@@ -2,9 +2,9 @@
 
 {% block content %}
 
-<script type="text/paperscript" src="static/javascript/js/paperPath.js" canvas="paperCanvas" ></script>
-<script type="module" src="static/javascript/js/modelView.js" defer></script>
-<script type="text/javascript" src="static/javascript/js/latent.js" defer></script>
+<script type="text/paperscript" src="static/javascript/js/path_plotter.js" canvas="paperCanvas" ></script>
+<script type="module" src="static/javascript/js/model_viewer.js" defer></script>
+<script type="text/javascript" src="static/javascript/js/gui.js" defer></script>
 
 <script type="text/javascript">  
   var latent_bounds = {{ latent_bounds|tojson }};  
@@ -24,7 +24,7 @@
 
 
   window.globals = {
-    internalClicked: function() {},
+    getSlices: function() {},
     slices:  [],
     latent_bounds: latent_bounds,
     latent_img_source : img_source,
@@ -186,7 +186,7 @@
 
           <div class="form-group form-inline">
             <div class="col-6">
-                <small for="slice_count">Slices Per Floor</small>
+                <small for="slice_count">Slices Per Height</small>
             </div>
             <div class="col-6">
               <input type="text" class="inputBox text-center" id="slice_count" name="slice_count"  value = 1>
@@ -195,7 +195,7 @@
 
           <div class="form-group form-inline">
             <div class="col-6">
-              <small for="taper">Tapered Floors</small>
+              <small for="taper">Tapered Slices (%)</small>
             </div>
             <div class="col-6">
               <input type="text" class="inputBox text-center" id="taper" name="taper"  value = 0 >

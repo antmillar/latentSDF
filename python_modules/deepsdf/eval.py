@@ -1,6 +1,3 @@
-#various functions taken from https://github.com/daveredrum/Pointnet2.ScanNet/blob/master/visualize.py
-#other functions added
- 
 import numpy as np
 import os
 import torch
@@ -20,6 +17,7 @@ import openmesh as om
 import pyvista as pv
 from collections import namedtuple
 import random
+from .primitives import Box
 
 #static
 cwd = os.getcwd()
@@ -38,97 +36,98 @@ ptsSample = np.float_([[x, y]
                 for x in np.linspace(-50, 50, res)])
 pts = torch.Tensor(ptsSample).to(device)
 
-#load a torch model and generate slices
-def evaluate(sliceVectors, height, taper, model_path):
- 
-    print("loading model...")
-    # model_path = os.path.join(dir_model, "8floorplans.pth")
-    # model_path = os.path.join(dir_model, "8floorplans_selflearn.pth")
-    print(model_path)
 
-    model = deepSDFCodedShape()#.cuda()
-    model.load_state_dict(torch.load(model_path, map_location=device))
 
-    return generateModel(sliceVectors, model, height, taper)
+def create_rotation_matrix(degrees):
+  '''
+  Generates a rotation matrix for given angle
+  '''
+
+  theta = np.radians(degrees)
+  cos, sin = np.cos(theta), np.sin(theta)
+  rotation_matrix = torch.tensor(np.array(((cos, -sin), (sin, cos)))).float() #clockwise
+  
+  return rotation_matrix
+
+def generate_slices(model, slice_vectors, rotation):
+
+    start_rotation = 0
+    sliceCount = len(slice_vectors)
+    slices = []
+    coverages = []
+    endLayer = torch.ones(res, res)
+
+    #add closing slice to first layer for marching cubes later
+    slices.append(endLayer)
+
+    for vector in slice_vectors[:sliceCount]:
+
+      start_rotation += rotation
+      rot_mat = create_rotation_matrix(start_rotation) 
+
+      #rotate the sdf input pts
+      pts_rotated = torch.mm(pts, rot_mat)
+
+      sdf, coverage = process_slices(model, pts_rotated, torch.tensor(vector))
+      coverages.append(coverage)
+
+
+
+      slices.append(sdf.detach().cpu())
+
+    return slices, coverages
+
+def process_slices(model, pts, latent):
+
+    sdf = model.forward(latent, pts)
+
+    coverage = get_area_covered(sdf)
+
+
+    return sdf.view(res, res), coverage
+
+
+def taper_slices(slices, slices_to_taper):
+
+  #get the deepest point in layers to taper
+  deepest_pt = min([torch.min(sl) for sl in slices[-slices_to_taper:]]) 
+  
+  print("deepest point to taper : ", deepest_pt)
+
+  #tapering
+  for i in range(slices_to_taper):
+    #sq asymptote
+    shrinkage = 1.0 / (slices_to_taper * slices_to_taper ) * -1 * deepest_pt
+    slices[-slices_to_taper + i] = slices[-slices_to_taper + i].detach().cpu() + shrinkage * i * i
+
+  return slices
 
 
 @funcTimer
-def generateModel(sliceVectors, height, taper, rotation, model_path):
+def generateModel(slice_vectors, height, taper, rotation, model_path):
 
     print("generating 3d model...")
     numSlices = height
-    slice_count = len(sliceVectors)
+    slice_count = len(slice_vectors)
  
     print("loading model...")
-    # model_path = os.path.join(dir_model, "8floorplans.pth")
-    # model_path = os.path.join(dir_model, "8floorplans_selflearn.pth")
     print(model_path)
-
     model = deepSDFCodedShape()#.cuda()
     model.load_state_dict(torch.load(model_path, map_location=device))
 
-
-    def createSlice(pts, latent):
-
-        sdf = model.forward(latent, pts)
-
-        #need to generate a 50 x 50 sdf for the core
-
-        circle = Circle(np.array([25, 25]), 20)
-        coverage = get_area_covered(sdf)
-
-        # print(np.unique(circle.field))
-
-        # intersection = np.maximum(circle.field * -1, sdf.detach().numpy())
-        # print(type(intersection))
-        # print(intersection.shape)
-        return sdf.view(res, res), coverage
-        # return torch.tensor(intersection).view(res, res)
-
     slices = []
-    cores = []
-
-
-    endLayer = torch.ones(res, res)
-    #add closing slice to first layer 
-    slices.append(endLayer)
-    # add = 0.0
-
-    #clamp value
-    sliceCount = len(sliceVectors)
-    slices_to_taper = int(taper)
-
     coverages = []
+    cores = []
+    endLayer = torch.ones(res, res)
     start_rotation = 0
-
-    def get_rotation_matrix(degrees):
-      '''
-      Generates a rotation matrix for given angle
-      '''
-
-      theta = np.radians(degrees)
-      cos, sin = np.cos(theta), np.sin(theta)
-      rotation_matrix = torch.tensor(np.array(((cos, -sin), (sin, cos)))).float() #clockwise
-      
-      return rotation_matrix
-
-    for vector in sliceVectors[:sliceCount]:
-
-        start_rotation += rotation
-        rot_mat = get_rotation_matrix(start_rotation) 
-
-        #rotate the sdf input pts
-        pts_rotated = torch.mm(pts, rot_mat)
-
-        sdf, coverage = createSlice(pts_rotated, torch.tensor(vector))
-        coverages.append(coverage)
+   
+    
+    #update slices with rotation, and calculate coverages
+    print("generating SDFs")
+    slices, coverages = generate_slices(model, slice_vectors, rotation)
 
 
-
-        slices.append(sdf.detach().cpu())
-
-    #need to adjust 2d slices so the distances are accurate in 3d too
-
+    print("converting 2D slices to 3D SDF...")
     gridDistanceWidth = 4.0 #because the max inside and outside is 1 and -1, 4 = 1 + 1 - - 1 - - 1
     cellSize = gridDistanceWidth / res
     #maybe ignore first layer
@@ -175,24 +174,15 @@ def generateModel(sliceVectors, height, taper, rotation, model_path):
         mySlice = diffsToKeep + diffsToKeep2 + np.multiply(finalmask, mySlice)
         # print(np.unique(mySlice))
 
-
-    #tapering
-    for i in range(slices_to_taper):
-      ##cubic aymptote
-        shrinkage = 1.0 / (slices_to_taper *slices_to_taper )
-        slices[-slices_to_taper + i] = slices[-slices_to_taper + i].detach().cpu() + shrinkage * i*i
+    print("tapering slices...")
+    slices_to_taper = int(slice_count * taper / 100.0) * (slice_count // height)
+    slices = taper_slices(slices, slices_to_taper)
 
 
     #add closing slice to last layer
     slices.append(endLayer)
-    # cores.append(endLayer)
- 
-    minCoverage = np.round(min(coverages) * 100.0, 2)
-    maxCoverage = np.round(max(coverages) * 100.0, 2)
-    ground_floor = slices[1]
-    ground_floor_min = torch.min(ground_floor)
-    ground_floor_min_coords = torch.nonzero(ground_floor == torch.min(ground_floor))
-    
+
+    #stack slices into np array
     stacked = np.stack(slices)
 
 
@@ -205,10 +195,11 @@ def generateModel(sliceVectors, height, taper, rotation, model_path):
     floor_every = 1
     level = 0.0
 
-    floor_every = slice_count // height
-    floor_height = 1
-    slice_height = 1 / floor_every
+    floor_height = 2
+    floor_every = (slice_count // height) * floor_height
+    slice_height = 1 / (slice_count // height) 
 
+    print("generating floors...")
   #ADDING FLOORS
     ##funny indexing due to extra ends added to close form
     for idx, s in enumerate(slices[1:-slices_to_taper - 1:floor_every]):
@@ -230,7 +221,7 @@ def generateModel(sliceVectors, height, taper, rotation, model_path):
 
             test = np.c_[floor, idx * floor_height * np.ones((floor.shape[0], 1))]
             # test[:,2] += 1 #subtract one for the extra base plane
-            test[:,2]*= floor_height #need to scale up the height
+            # test[:,2]*= floor_height #need to scale up the height
             test[:,0] -= 25.0
             test[:,1] -= 25.0
             test = test.tolist()
@@ -241,7 +232,7 @@ def generateModel(sliceVectors, height, taper, rotation, model_path):
         floor_labels.append(labels)
 
 
-
+    print("generating contours...")
     #create vertical contours
     ySlices = []
     for i in range(stacked.shape[1]):
@@ -269,7 +260,7 @@ def generateModel(sliceVectors, height, taper, rotation, model_path):
               test[:,[0, 2]] = test[:,[2, 0]]
               test[:,2] -= 1 #move down a floor
 
-              test[:,2]*= floor_height #need to scale up the height
+              test[:,2]*= slice_height #need to scale up the height
               #centering
               test[:,0] -= 25.0
               test[:,1] -= 25.0 
@@ -315,8 +306,6 @@ def generateModel(sliceVectors, height, taper, rotation, model_path):
     print(np.min(vals)) 
     
     vals = vals.transpose()
-
-
 
 
     def get_vertical_outliers(x, y):
@@ -377,17 +366,7 @@ def generateModel(sliceVectors, height, taper, rotation, model_path):
       return core_center
 
 
-    # core_center = find_core_center(vals)
-
-    minCore = 5
-    core_diameter = minCore
-    # print("core_center : ", core_center)
-
-    # square = Box(core_diameter, core_diameter, core_center)
-
-    # cores  = [square.field.reshape(res, res) for i in range(numSlices )]
-
-
+    core_diameter = 5
 
     #get all contours for the level selected
     core_centers = []
@@ -418,56 +397,30 @@ def generateModel(sliceVectors, height, taper, rotation, model_path):
     cores = intersection
 
 
-
     #filter out empty contours/floors
-    floors = [item for item in floors if item != []]
 
+    # floors = [item for item in floors if item != []]
     contours = [item for item in contours if item != []]
 
-
-
-    ##flattens an irregular nested list
-    import collections
-    def flatten(l):
-      for el in l:
-        ##stop recursion once reach the coordinate list
-          if isinstance(el, collections.Iterable) and not isinstance(el, (str, bytes)) and not(len(el) == 3 and isinstance(el[0], float)):
-              yield from flatten(el)
-          else:
-              yield el
-
-
-    # flat_list = [item for sublist in contours for item in sublist]
-    # flat_list = list(flatten(contours))
-    # print(len(flat_list))
-    # new_list = [item for sublist in contours for item in sublist]
-    # list2 = [x for x in flat_list if  any(isinstance(item, float) for item in x)]
-    # print(type(flat_list[0][0]))
-    # print(flat_list[0])
-
-
-    # print(contours.shape)
-    # stacked = np.stack(contours)
-    # om.write_mesh(os.path.join(dir_output, fn), mesh)
-
-    # #get the 0 iso surface
+    #get the 0 iso surface for outer facade
     verts, faces = mcubes.marching_cubes(stacked, 0)
 
+    #get iso surface for inner core/s
     stackedCores = np.stack(cores)
     vertsCore, facesCore = mcubes.marching_cubes(stackedCores, 0)
 
-    # #normalize verts to 50
+    #normalize verts to 50
     verts[:,1:] /= (res / 50)
     vertsCore[:,1:] /= (res / 50)
 
     # print(verts.shape)
     verts[:,0] -= 1
     verts[:,0] *= slice_height
-    verts[:,1] -= 25.0 #translate to threejs space
+
+    # translate to threejs space
+    verts[:,1] -= 25.0
     verts[:,2] -= 25.0
 
-    # vertsCore[:,0] -= 1
-    vertsCore[:,0] *= slice_height
     vertsCore[:,1] -= 25.0 #translate to threejs space
     vertsCore[:,2] -= 25.0
 
@@ -475,39 +428,24 @@ def generateModel(sliceVectors, height, taper, rotation, model_path):
     new_arr = np.ones((faces.shape[0], faces.shape[1] + 1), dtype=np.int32) * 3
     new_arr[:,1:] = faces
 
-    # verts = np.round(verts, 0)
-    # mesh = pv.PolyData(verts, new_arr)
-    # points = pv.PolyData(flat_list)
-    # surf = points.delaunay_3d().extract_geometry().clean()
-    # mesh = mesh.decimate(0.3)
-
-    # print(verts % 1 == 0)
-    # fn = "model-" + timestr + ".obj"
-    # # Export the result
+    # Export the result
     timestr = time.strftime("%d%m%y-%H%M%S")
-
     fn = "model-" + timestr + ".obj"
     core_fn = "core_" + fn
+
     mcubes.export_obj(verts, faces,  os.path.join(dir_output, fn))
     mcubes.export_obj(vertsCore, facesCore,  os.path.join(dir_output, core_fn))
 
-    # pv.save_meshio(os.path.join(dir_output, fn), surf)
+    # model details for app
+     
+    minCoverage = np.round(min(coverages) * 100.0, 2)
+    maxCoverage = np.round(max(coverages) * 100.0, 2)
 
     Details = namedtuple("Details", ["Floors", "Taper", "Rotation", "MaxCoverage", "MinCoverage"])
     model_details = Details(numSlices, taper, rotation, maxCoverage, minCoverage)
 
-    print(floors[49])
     return fn, contours, floors, model_details
 
-
-def poprow(my_array,pr):
-    """ row popping in numpy arrays
-    Input: my_array - NumPy array, pr: row index to pop out
-    Output: [new_array,popped_row] """
-    i = pr
-    pop = my_array[i]
-    new_array = np.vstack((my_array[:i],my_array[i+1:]))
-    return new_array,pop
 
 def getIndex(contours, point):
 
@@ -525,10 +463,6 @@ def extractContours(s, num_samples, level = 0.0, start_point = None):
   labels = measure.label(s_binary)
   startIndex = 0 
 
-
-  # contour_list = [contour for contour in contours]
-
-  # contours = np.vstack(contour_list)
     
   #extract number of points required
   sampled_contours = []
@@ -558,82 +492,3 @@ def extractContours(s, num_samples, level = 0.0, start_point = None):
 
   return sampled_contours, labels
 
-
-class Shape():
-
-  def __init__(self):
-    self.res = 50
-    self.generateField(0, 50, self.res)
-
-  def generateField(self, start, end, steps):
-
-    '''Generates the a 2D signed distance field for a shape
-    
-            Parameters:
-                    start (int): Start value of coordinates
-                    end (int): End value of coordinates
-                    steps (int): Number of steps in each dimension
-
-            Returns:
-                    outputField (list): List of signed distance field values
-    '''
-    self.start = start
-    self.end = end
-    self.steps = steps
-    self.pts = np.float_([[x, y] 
-                    for x in  np.linspace(start, end, steps) 
-                    for y in np.linspace(start, end, steps)])
-
-    self.field = np.float_(list(map(self.sdf, self.pts))).reshape(steps*steps, 1)
-
-
-    # self.normalizeField()
-
-    return True
-
-  def normalizeField(self):
-
-    '''Normalizes the signed distance field to be within [-1,1]'''
-
-    absMin = abs(np.min(self.field))
-    absMax = abs(np.max(self.field))
-
-    absAbsMax = max(absMin, absMax)
-
-    self.field /= absAbsMax
-      
-
-#subclasses
-
-class Circle(Shape):
-
-  def __init__(self, center : np.array, radius : float):
-
-
-    self.center = center
-    self.radius = radius / 2
-    super().__init__()
-
-  def sdf(self, p):
-
-    return np.linalg.norm(p - self.center) - self.radius
-
-class Box(Shape):
-
-  def __init__(self, height: float, width: float, center: np.array):
-
-    if(height <= 0 or width <= 0):
-      raise ValueError("Height or Width cannot be negative")
-
-    self.hw = np.float_((height / 2.0, width / 2.0))
-    self.center = center
-    super().__init__()
-
-  def sdf(self, p):
-
-    #translation
-    p = p - self.center
-    
-    d = abs(p) - self.hw
-
-    return np.linalg.norm([max(0, item) for item in d]) + min(max(d[0], d[1]), 0)
