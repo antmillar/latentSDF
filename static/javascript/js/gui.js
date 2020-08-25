@@ -76,13 +76,14 @@ function init(jQuery) {
 
   //update constraint
   $("#constraint").on('click', (e) => {
-      document.querySelector("#scoverage").value = globals.coverage;
+      document.querySelector("#scoverage").value = window.globals.coverage;
       document.querySelector("#btnConstraint").submit();
   });
 
   //update coverage value
   $('#coverage').on('input', function() {
-    window.globals.coverage = document.querySelector("#coverage").value;
+
+      window.globals.coverage = document.querySelector("#coverage").value;
   });
 
   //load torch model 

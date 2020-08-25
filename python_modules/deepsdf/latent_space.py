@@ -135,9 +135,12 @@ def interpolate_grid(model, latentBounds, latents : np.array, coverageThreshold,
             axs[num - 1 - jindex, index].axis("off")
             # axs[num - 1 - jindex, index].set_aspect('equal')
     
+    grid_is_transparent = False
     values = grid.grid
     if(coverageThreshold):
         threshold = coverageThreshold / 100.0
+        grid_is_transparent = True
+
     else:
         threshold = 0.5
         values = np.ones(grid.grid.shape) * 0.5
@@ -146,12 +149,13 @@ def interpolate_grid(model, latentBounds, latents : np.array, coverageThreshold,
 
     #red green diverging palette
     cmap = sns.diverging_palette(5, 150, n=10, as_cmap=True)
+
     ax2 = sns.heatmap(values, cmap = cmap, cbar=False, center = threshold, vmin = 0.0, vmax = 1.0)
     ax2.axis('off')
 
     fig2.savefig(os.path.join(dir_image, 'coverage_heatmap.png'), pad_inches=0, bbox_inches = 'tight')
             
-    fig.savefig(os.path.join(dir_image, 'latent_grid.png'), transparent=True)
+    fig.savefig(os.path.join(dir_image, 'latent_grid.png'), transparent=grid_is_transparent)
 
 def find_seeds(latentBounds, xAx, yAx, latents):
 

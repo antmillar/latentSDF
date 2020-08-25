@@ -5,7 +5,6 @@ from torch.utils.data import DataLoader
 from .architectures import deepSDFCodedShape
 from.utils import funcTimer, get_area_covered
 
-import json
 from pathlib import Path
 import numpy
 from PIL import Image
@@ -13,8 +12,6 @@ import mcubes
 import matplotlib.pyplot as plt
 import time
 from skimage import measure
-import openmesh as om
-import pyvista as pv
 from collections import namedtuple
 import random
 from .primitives import Box
@@ -90,6 +87,7 @@ def process_slices(model, pts, latent):
 def taper_slices(slices, slices_to_taper):
 
   #get the deepest point in layers to taper
+  #SHOULD CHanGE TO MAX??
   deepest_pt = min([torch.min(sl) for sl in slices[-slices_to_taper:]]) 
   
   print("deepest point to taper : ", deepest_pt)
@@ -191,6 +189,7 @@ def generateModel(slice_vectors, height, taper, rotation, model_path):
     floors = []
     floor_labels = []
     samples = 400
+    floor_samples = 40
     contour_every = 3
     floor_every = 1
     level = 0.0
@@ -210,10 +209,10 @@ def generateModel(slice_vectors, height, taper, rotation, model_path):
         if(idx > 0 and len(floors[idx - 1]) > 0):
             start_point = floors[idx - 1][0][0][:2] #previous layer first coordinate
             # slice_contours = extractContours(s, samples, level)
-            floor_contours, labels = extractContours(s, samples, level, start_point)
+            floor_contours, labels = extractContours(s, floor_samples, level, start_point)
 
         else:
-            floor_contours, labels = extractContours(s, samples, level)
+            floor_contours, labels = extractContours(s, floor_samples, level)
 
         a = []
         for floor in floor_contours:

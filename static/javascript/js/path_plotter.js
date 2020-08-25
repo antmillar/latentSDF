@@ -1,8 +1,10 @@
 // Initialise globals
 var path = new Path();
 var nodes = [];
+var points = [];
 var history = [];
 var texts = [];
+var arrows = []
 
 // JavaScript Interop
 globals.getSlices = extractSlices
@@ -10,8 +12,8 @@ globals.getSlices = extractSlices
 //defaults
 width = 600
 margin = 50;
-path.strokeColor =  new Color(1,0.0, 0.0, 0.5);
-path.strokeWidth = 2;
+path.strokeColor =  new Color(0.0,0.0, 0.0, 0.75);
+path.strokeWidth = 1;
 
 //add background canvas image
 var raster = new Raster({
@@ -185,19 +187,29 @@ function onMouseDown(event) {
     //on left click add node to path
     if(event.event.which == "1")
     {
+        var from = event.point;
+ 
+        if(points.length > 0)
+        {
+            from = points[points.length-1]
+            console.log(from)
+        }
+
+        points.push(event.point)
         var node = new Path.Circle(event.point, 5);
-        node.strokeWidth = 5;
-        
+
         nodes.push(node);
 
         //format all nodes
         for (i = 0; i < nodes.length; i++) {
-            nodes[i].strokeColor = new Color(1.0, 0.55, 0.25, 0.5);
+            nodes[i].strokeColor = new Color(0.0, 0.0, 0.0, 0.0);
             } 
 
         //update end nodes colors to different
         nodes[0].strokeColor =  new Color(0.0,0.5, 0.25, 0.8);
+        nodes[0].strokeWidth = 3;
         nodes.slice(-1)[0].strokeColor = new Color(1.0, 0.0, 0.0, 0.8);
+        nodes.slice(-1)[0].strokeWidth = 3;
 
         //update list of points selected
         var hist = new PointText(new Point(width + margin + margin/10.0, 2 * margin + history.length * 20));
@@ -213,11 +225,16 @@ function onMouseDown(event) {
         path.add(event.point);
         path.smooth();
 
+
+    
+        addArrows();
         //update the slice list on each click
         extractSlices(globals.slice_count * globals.height, nodes);
     }
+
+
     
-    //on right click remove segment
+    //on middle button click remove segment
     if(event.event.which == 2)
     {
         path.removeSegment(path.segments.length - 1);
@@ -228,5 +245,49 @@ function onMouseDown(event) {
         var histToRemove = history.pop();
         histToRemove.remove();
 
+        var pointToRemove = points.pop();
+
+        var arrowToRemove = arrows.pop();
+        arrowToRemove.remove();
+
+        var arrowToRemove2 = arrows.pop();
+        arrowToRemove2.remove();
     }
+}
+
+function addArrows()
+{
+
+    for(var i = 0; i < arrows.length; i++)
+    {
+        arrows[i].removeSegments();
+    }
+
+    arrows = []
+
+    for(var i = 0; i < points.length; i++)
+    {
+        var offset = path.getLocationOf(points[i]).offset;
+
+        var point = path.getPointAt(offset);
+
+        console.log(offset)
+
+        // Find the tangent vector at the given offset
+        // and give it a length of 60:
+        var tangent = path.getTangentAt(offset) * 10;
+
+        var line = new Path({
+            segments: [point, point + tangent],
+            strokeColor:  new Color(0.0,0.0, 0.0, 0.75),
+            strokeWidth: 2,
+        })
+        var line2 = line.clone();
+
+        line.rotate(30, line.getPointAt(line.length));
+        line2.rotate(-30, line.getPointAt(line.length));
+        arrows.push(line)
+        arrows.push(line2)
+    }
+
 }

@@ -223,16 +223,21 @@ def main():
             latent_space.updateLatent(latent_bounds, torch_model, latents)
 
         #update the latent space
-        if(request.form.get("scoverage")):
+        if(request.form.get("scoverage") == ""):
 
             global coverage
+            coverage = ""
+            latent_space.updateLatent(latent_bounds, torch_model, latents, coverage)
+
+        if(request.form.get("scoverage")):
+
             coverage = request.form.get("scoverage")
 
             try:
                 coverage = float(coverage)
 
             except:
-                coverage = False
+                coverage = ""
 
             latent_space.updateLatent(latent_bounds, torch_model, latents, coverage)
 

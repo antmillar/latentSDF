@@ -1,7 +1,7 @@
 import * as THREE from 'https://threejsfundamentals.org/threejs/resources/threejs/r113/build/three.module.js';
 import {OrbitControls} from 'https://threejsfundamentals.org/threejs/resources/threejs/r113/examples/jsm/controls/OrbitControls.js';
 import {OBJLoader2} from 'https://threejsfundamentals.org/threejs/resources/threejs/r113/examples/jsm/loaders/OBJLoader2.js';
-import {OBJExporter} from 'https://threejsfundamentals.org/threejs/resources/threejs/r113/examples/jsm/exporters/OBJExporter.js';
+import {STLExporter} from 'https://threejsfundamentals.org/threejs/resources/threejs/r113/examples/jsm/exporters/STLExporter.js';
 
 var scene, camera, renderer, canvas;
 var dloadInterior
@@ -141,6 +141,9 @@ canvas = document.querySelector('#c');
 }
 
 animate();
+
+
+
 
 
 function animate() {
@@ -370,7 +373,7 @@ function generateAxes(){
 function generateInteriorModel(data) {
 
 // Instantiate an exporter
-var exporter = new OBJExporter();
+var exporter = new STLExporter();
 // Parse the input and generate the ply output
 dloadInterior = exporter.parse( data );
 }
@@ -378,7 +381,7 @@ dloadInterior = exporter.parse( data );
 function generateExteriorModel(data) {
 
   // Instantiate an exporter
-var exporter = new OBJExporter();
+var exporter = new STLExporter();
 // Parse the input and generate the ply output
 dloadExterior = exporter.parse( data );
 }
@@ -399,11 +402,11 @@ function download(filename, text) {
 document.querySelector("#downloadInterior").onclick = function()
   {
     console.log(dloadInterior)
-    download("interior.obj", dloadInterior)
+    download("interior.stl", dloadInterior)
   }  
 
 document.querySelector("#downloadExterior").onclick = function()
 {
   console.log(dloadExterior)
-  download("exterior.obj", dloadExterior)
+  download("exterior.stl", dloadExterior)
 }  
