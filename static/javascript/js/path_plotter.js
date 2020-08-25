@@ -212,14 +212,14 @@ function onMouseDown(event) {
         nodes.slice(-1)[0].strokeWidth = 3;
 
         //update list of points selected
-        var hist = new PointText(new Point(width + margin + margin/10.0, 2 * margin + history.length * 20));
-        hist.fontSize = 6;
-        hist.fontFamily = "sans-serif";
-        hist.fillColor = 'black';
+        // var hist = new PointText(new Point(width + margin + margin/10.0, 2 * margin + history.length * 20));
+        // hist.fontSize = 6;
+        // hist.fontFamily = "sans-serif";
+        // hist.fillColor = 'black';
         
-        var coords = mouseToLatent(event.point);
-        hist.content = "[ " + coords.x.toFixed(2) + " , " + coords.y.toFixed(2) + " ]";
-        history.push(hist);
+        // var coords = mouseToLatent(event.point);
+        // hist.content = "[ " + coords.x.toFixed(2) + " , " + coords.y.toFixed(2) + " ]";
+        // history.push(hist);
 
         //update the path
         path.add(event.point);
