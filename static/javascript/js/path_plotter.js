@@ -291,3 +291,27 @@ function addArrows()
     }
 
 }
+
+
+function downloadCanvas(filename){
+
+    var thisImage = new Image();
+    thisImage = document.getElementById("paperCanvas").toDataURL("image/png");
+    
+    var element = document.createElement('a');
+    element.setAttribute('download', filename);
+    element.setAttribute('href', thisImage);
+    element.style.display = 'none';
+    document.body.appendChild(element);
+
+    element.click();
+    document.body.removeChild(element);
+
+
+    // document.getElementById("downloader").href = document.getElementById("canvas").toDataURL("image/png").replace(/^data:image\/[^;]/, 'data:application/octet-stream');
+}
+
+document.querySelector("#downloadPath").onclick = function()
+{
+    downloadCanvas("latent_path.png")
+}  
