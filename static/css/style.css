@@ -3,7 +3,7 @@ body {
 }
 
 .inputBox {
-  font-size: 12px;
+  font-size: 11px;
   margin: 2px;
   width:100%;
   text-align: center;
@@ -25,6 +25,13 @@ body {
   
 }
 
+.form-group {
+  margin-top : -10px;
+}
+
+small {
+  font-size : 11px;
+}
 /* canvas[resize] {
   width: 100%;
   height: 100%;
