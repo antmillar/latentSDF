@@ -2,9 +2,10 @@
 
 {% block content %}
 
+
 <script type="text/paperscript" src="static/javascript/js/path_plotter.js" canvas="paperCanvas" ></script>
-<script type="module" src="static/javascript/js/model_viewer.js" defer></script>
-<script type="text/javascript" src="static/javascript/js/gui.js" defer></script>
+<script type = "module" src="static/javascript/js/model_viewer.js"   ></script>
+<script type="text/javascript" src="static/javascript/js/gui.js"  defer></script>
 
 <script type="text/javascript">  
   var latent_bounds = {{ latent_bounds|tojson }};  
@@ -21,6 +22,7 @@
   var canvas_width = 700;
   var show_context = {{ show_context|tojson }}
   var slice_count =  1;
+  var points = {{points|tojson}}
 
 
   window.globals = {
@@ -37,6 +39,7 @@
     discrete: false,
     show_context: show_context,
     slice_count:slice_count,
+    points:points,
   }
 </script>
 
@@ -184,7 +187,7 @@
 
           <div class="form-group form-inline">
             <div class="col-6">
-                <small for="height">Model Height</small>
+                <small for="height">Model Height (m)</small>
             </div>
             <div class="col-6">
               <input type="text" class="inputBox text-center" id="height" name="height" >
@@ -307,6 +310,7 @@
 
     <input type="hidden" id = "generateSlices" name = "generateSlices" value = "generate">
     <input type="hidden" id = "slices" name = "slices">
+    <input type="hidden" id = "pathPoints" name = "pathPoints">
     <input type="hidden" id = "modelHeight" name = "modelHeight">
     <input type="hidden" id = "modelTaper" name = "modelTaper">
     <input type="hidden" id = "modelRotation" name = "modelRotation">

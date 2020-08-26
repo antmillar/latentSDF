@@ -194,7 +194,7 @@ def generateModel(slice_vectors, height, taper, rotation, model_path):
     floor_every = 1
     level = 0.0
 
-    floor_height = 2
+    floor_height = 3
     floor_every = (slice_count // height) * floor_height
     slice_height = 1 / (slice_count // height) 
 

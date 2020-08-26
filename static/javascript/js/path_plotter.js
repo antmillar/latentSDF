@@ -4,16 +4,30 @@ var nodes = [];
 var points = [];
 var history = [];
 var texts = [];
-var arrows = []
+var arrows = [];
+var lastArrows = []
+var lastPath = new Path();
 
 // JavaScript Interop
 globals.getSlices = extractSlices
 
+
+
+
+
 //defaults
 width = 600
 margin = 50;
-path.strokeColor =  new Color(0.0,0.0, 0.0, 0.75);
-path.strokeWidth = 1;
+path.strokeColor =  new Color(0.0,0.0, 0.0, 0.65);
+path.strokeWidth = 1.5;
+path.dashArray = [10, 4];
+lastPath.strokeColor =  new Color(0.0,0.0, 0.0, 0.85);
+lastPath.strokeWidth = 1.5;
+
+
+
+
+
 
 //add background canvas image
 var raster = new Raster({
@@ -48,6 +62,27 @@ addAxisLabels()
 
 
 
+
+//recreate path
+last_points = []
+var point_arr = globals.points.split(',').map(parseFloat)
+for(i = 0; i < point_arr.length; i += 2)
+{
+  var pt = new Point([point_arr[i],point_arr[i+1]]);
+  last_points.push(pt);
+  lastPath.add(pt);
+  lastPath.smooth();
+}
+var n = new Path.Circle(last_points[0], 5);
+n.strokeColor = new Color(0.0,0.5, 0.25, 0.8);
+
+n.strokeWidth = 3;
+var m = new Path.Circle(last_points.slice(-1)[0], 5);
+m.strokeColor = new Color(1.0, 0.0, 0.0, 0.8);
+m.strokeWidth = 3;
+
+
+lastArrows = addArrows(lastArrows, last_points, lastPath)
 
 //converts coordinate from mouse world space to latent space
 function mouseToLatent(point){
@@ -112,7 +147,6 @@ function extractSlices(sliceCount, nodes){
                 slices.push([pt.x.toFixed(2), pt.y.toFixed(2)]);
             }
 
-            console.log(slices)
         }
         else
         {
@@ -127,8 +161,16 @@ function extractSlices(sliceCount, nodes){
         }
 
     }
-    console.log(slices)
-    globals.slices = slices
+
+    new_points = [];
+
+    for(i = 0; i < points.length; i++)
+    {
+        new_points.push(points[i].x, points[i].y)
+    }
+
+    globals.points = new_points;
+    globals.slices = slices;
 }
 
 function getCenter(n){
@@ -187,15 +229,13 @@ function onMouseDown(event) {
     //on left click add node to path
     if(event.event.which == "1")
     {
-        var from = event.point;
- 
         if(points.length > 0)
         {
             from = points[points.length-1]
-            console.log(from)
         }
 
         points.push(event.point)
+
         var node = new Path.Circle(event.point, 5);
 
         nodes.push(node);
@@ -224,10 +264,8 @@ function onMouseDown(event) {
         //update the path
         path.add(event.point);
         path.smooth();
-
-
     
-        addArrows();
+        arrows = addArrows(arrows, points, path);
         //update the slice list on each click
         extractSlices(globals.slice_count * globals.height, nodes);
     }
@@ -239,43 +277,50 @@ function onMouseDown(event) {
     {
         path.removeSegment(path.segments.length - 1);
 
-        var nodeToRemove = nodes.pop();
-        nodeToRemove.remove();
+        if(nodes.length > 0)
+        {
+            var nodeToRemove = nodes.pop();
+            nodeToRemove.remove();
+        }
 
-        var histToRemove = history.pop();
-        histToRemove.remove();
+        // var histToRemove = history.pop();
+        // histToRemove.remove();
 
-        var pointToRemove = points.pop();
+        if(points.length > 0)
+        {
+            var pointToRemove = points.pop();
+        }
 
-        var arrowToRemove = arrows.pop();
-        arrowToRemove.remove();
+        if(arrows.length > 0)
+        {
+            var arrowToRemove = arrows.pop();
+            arrowToRemove.remove();
 
-        var arrowToRemove2 = arrows.pop();
-        arrowToRemove2.remove();
+            var arrowToRemove2 = arrows.pop();
+            arrowToRemove2.remove();
+        }
     }
 }
 
-function addArrows()
+function addArrows(arws, arr, pth)
 {
 
-    for(var i = 0; i < arrows.length; i++)
+    for(var i = 0; i < arws.length; i++)
     {
-        arrows[i].removeSegments();
+        arws[i].removeSegments();
     }
 
-    arrows = []
+    arws = []
 
-    for(var i = 0; i < points.length; i++)
+    for(var i = 1; i < arr.length; i++)
     {
-        var offset = path.getLocationOf(points[i]).offset;
+        var offset = pth.getLocationOf(arr[i]).offset;
 
-        var point = path.getPointAt(offset);
-
-        console.log(offset)
+        var point = pth.getPointAt(offset);
 
         // Find the tangent vector at the given offset
         // and give it a length of 60:
-        var tangent = path.getTangentAt(offset) * 10;
+        var tangent = pth.getTangentAt(offset) * 10;
 
         var line = new Path({
             segments: [point, point + tangent],
@@ -286,10 +331,10 @@ function addArrows()
 
         line.rotate(30, line.getPointAt(line.length));
         line2.rotate(-30, line.getPointAt(line.length));
-        arrows.push(line)
-        arrows.push(line2)
+        arws.push(line)
+        arws.push(line2)
     }
-
+    return arws;
 }
 
 

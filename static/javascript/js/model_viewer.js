@@ -12,16 +12,16 @@ canvas = document.querySelector('#c');
 
   //scene
   scene = new THREE.Scene();
-  scene.background = new THREE.Color(0xBBBBBB);
+  scene.background = new THREE.Color(0xDDDDDD);
 
   //camera
   const fov = 45;
   const aspect = 1;  // the canvas default
   const clipNear = 0.01;
   const clipFar = 5000;
-  const radius = 30
+  const radius = 300
   camera = new THREE.PerspectiveCamera(fov, aspect, clipNear, clipFar);
-  camera.position.set(radius * Math.cos( 3 * Math.PI/4) , 30, radius * Math.sin( 3 * Math.PI/4));
+  camera.position.set(radius * Math.cos( 1.5 * Math.PI/4) , radius/2, radius * Math.sin( 2 * Math.PI/4));
   camera.lookAt( 0, 0, 0 );
 
   //mouse controls
@@ -31,7 +31,7 @@ canvas = document.querySelector('#c');
 
   var ambient = new THREE.AmbientLight( 0xffffff );
   scene.add( ambient );
-  scene.fog = new THREE.Fog( 0xBBBBBB, 75, 175 );
+  scene.fog = new THREE.Fog( 0xBBBBBB, 200, 1500  );
 
   var dirLight = new THREE.DirectionalLight( 0xffffff, 0.5);
   dirLight.position.set( -20, 20, 20 );
@@ -62,17 +62,16 @@ canvas = document.querySelector('#c');
   loader.load(active_model, function(obj){
 
     let matGlass2 = new THREE.MeshPhysicalMaterial( {
-      // color: 0xA4CBD4,
       color: 0x555555,
       opacity: 0.5,
       side: THREE.FrontSide,
       transparent: true,
-      // depthTest: false,
 
     } );
 
     //geometry
     let model_facade = obj.children[0];
+    model_facade.name = "facade";
     console.log("bldg model : " , model_facade)
 
     model_facade.geometry.computeVertexNormals();
@@ -86,7 +85,7 @@ canvas = document.querySelector('#c');
     ground.receiveShadow = true;
 
     //scaling/rotating
-    model_facade.geometry.scale(0.1,0.1,0.1);
+    // model_facade.geometry.scale(0.1,0.1,0.1);
     model_facade.geometry.rotateZ( Math.PI / 2); 
 
     ground.rotation.x = -Math.PI / 2; 
@@ -101,12 +100,39 @@ canvas = document.querySelector('#c');
 
     generateExteriorModel(model_facade);
 
-    generateAxes();
+
+    // if(window.globals.show_context == "true")
+    // {
+  
+    //   toggleContext(window.globals.show_context)
+    // }
+    // //only show the labelled axes in no context mode
+    // else
+    // {
+    // }
 
   });
 
-  if(window.globals.show_context == "true")
+ 
+}
+
+animate();
+
+
+
+
+
+function animate() {
+
+  renderer.render(scene,camera);
+  requestAnimationFrame(animate);
+}
+
+function toggleContext(toggle)
+{
+  if(toggle)
   {
+    console.log("adding context...")
 
     // LOAD THE CONTEXT OBJ FILE
     let contextLoader = new OBJLoader2();
@@ -124,32 +150,39 @@ canvas = document.querySelector('#c');
       let box = new THREE.Box3().setFromObject( model_context );
       let center = new THREE.Vector3();
       box.getCenter( center );
-      model_context.position.sub( center ); // center the model
-      model_context.rotation.y = Math.PI;   // rotate the model
+
+      // model_context.position.sub( center ); // center the model
+      // model_context.rotation.y = Math.PI;   // rotate the model
 
       //hard coded offsets for the specific context used
-      model_context.translateY(6.15)
-      model_context.translateX(-16)
-      model_context.translateZ(-10)
+      // model_context.translateY(100)
+      // model_context.translateX(-16)
+      // model_context.translateZ(-50)
 
-      model_context.scale.set(50,50,50);
+      model_context.name = "context"
 
       scene.add(model_context);
 
     })
+
+    let objToRemove = scene.getObjectByName("axes");
+    console.log(objToRemove)
+    scene.remove(objToRemove)
   }
-}
 
-animate();
+  else
+  {
+    console.log("removing context...")
+    let objToRemove = scene.getObjectByName("context");
+    scene.remove(objToRemove)
 
+    let objFacade = scene.getObjectByName("facade");
+    generateAxes(objFacade);
 
+  }
 
+  animate()
 
-
-function animate() {
-
-  renderer.render(scene,camera);
-  requestAnimationFrame(animate);
 }
 
 
@@ -173,7 +206,7 @@ function loadCore(){
      
     model.material = matCore;
 
-    model.geometry.scale(0.1,0.1,0.1);
+    // model.geometry.scale(0.1,0.1,0.1);
     
     model.geometry.rotateZ( Math.PI / 2); 
 
@@ -222,19 +255,19 @@ function generateFloors(){
         let edges = new THREE.EdgesGeometry( geometryFloor);
         let edge = new THREE.LineSegments( edges, matEdge );
 
-        geometryFloor.scale(0.1,0.1,0.1);
+        // geometryFloor.scale(0.1,0.1,0.1);
         geometryFloor.rotateZ( Math.PI ); 
         geometryFloor.rotateX( -Math.PI / 2); 
-        geometryFloor.translate(0,   points[0].z / 10.0, 0);
+        geometryFloor.translate(0,   points[0].z, 0);
 
 
         let floor = new THREE.Mesh( geometryFloor, matGlass );
         floor.castShadow = true;
 
-        edge.scale.set(0.1,0.1,0.1);
+        // edge.scale.set(0.1,0.1,0.1);
         edge.rotation.x = Math.PI / 2; 
         edge.rotation.y = Math.PI; 
-        edge.translateZ(points[0].z / 10.0);
+        edge.translateZ(points[0].z);
   
         scene.add( floor, edge );
       }
@@ -265,7 +298,7 @@ function generateContours()
       let geometryContour = new THREE.BufferGeometry().setFromPoints( curvePts );
       
       let contourLine = new THREE.Line( geometryContour, matContours );
-      contourLine.geometry.scale(0.1,0.1,0.1);
+      // contourLine.geometry.scale(0.1,0.1,0.1);
       contourLine.geometry.rotateX( -Math.PI / 2); 
       contourLine.geometry.rotateY(Math.PI); 
 
@@ -276,57 +309,59 @@ function generateContours()
 
 }
 
-function generateAxes(){
+function generateAxes(model_facade){
 
   let bbox = new THREE.Box3().setFromObject( model_facade );
-  var size = bbox.getSize();
-  var xSize = (size.x * 5).toFixed(2);
-  var zSize = (size.z * 5).toFixed(2);
+  let size = bbox.getSize();
+  
+  var xSize = (size.x ).toFixed(2);
+  var zSize = (size.z ).toFixed(2);
 
   var bldg_height = window.globals.height;
   var matAxis = new THREE.LineBasicMaterial({
-    color: 0x888888
+    color: 0x888888,
+    linewidth: 5.0
   });
   // add dimension lines
 
-  var buffer = 0.5 
-  var lenTip = 0.25
+  var buffer = 5
+  var lenTip = 2.5
 
   var xPts = [];
-  xPts.push( new THREE.Vector3( -5 + buffer, 1.0 , -5 - buffer + lenTip) );
-  xPts.push( new THREE.Vector3( -5 + buffer, 1.0, -5 - buffer - lenTip) );
-  xPts.push( new THREE.Vector3( -5 + buffer, 1.0, -5 - buffer) );
-  xPts.push( new THREE.Vector3( 5 - buffer, 1.0 , -5 - buffer) );
-  xPts.push( new THREE.Vector3( 5 - buffer, 1.0 , -5 - buffer + lenTip) );
-  xPts.push( new THREE.Vector3( 5 - buffer, 1.0 , -5 - buffer - lenTip) );
+  xPts.push( new THREE.Vector3( -xSize/2 + buffer, 10 , -50 - buffer + lenTip) );
+  xPts.push( new THREE.Vector3( -xSize/2 + buffer, 10, -50 - buffer - lenTip) );
+  xPts.push( new THREE.Vector3( -xSize/2 + buffer, 10, -50 - buffer) );
+  xPts.push( new THREE.Vector3( xSize/2 - buffer, 10 , -50 - buffer) );
+  xPts.push( new THREE.Vector3( xSize/2 - buffer, 10 , -50 - buffer + lenTip) );
+  xPts.push( new THREE.Vector3( xSize/2 - buffer, 10 , -50 - buffer - lenTip) );
 
   var geoX = new THREE.BufferGeometry().setFromPoints( xPts );
   var xAxis = new THREE.Line( geoX, matAxis );
 
 
-  var yPts = [];
+  var zPts = [];
 
-  yPts.push( new THREE.Vector3( -5 + lenTip, 1.0, 5  - buffer) );
-  yPts.push( new THREE.Vector3( -5 - lenTip, 1.0, 5  - buffer) );
-  yPts.push( new THREE.Vector3( -5 , 1.0, 5  - buffer) );
-  yPts.push( new THREE.Vector3( -5 , 1.0 , -5 + buffer) )
-  yPts.push( new THREE.Vector3( -5  + lenTip, 1.0 , -5 + buffer) )
-  yPts.push( new THREE.Vector3( -5  - lenTip, 1.0 , -5 + buffer) )
+  zPts.push( new THREE.Vector3( -50 + lenTip, 10, zSize/2  - buffer) );
+  zPts.push( new THREE.Vector3( -50 - lenTip, 10, zSize/2  - buffer) );
+  zPts.push( new THREE.Vector3( -50 , 10, zSize/2  - buffer) );
+  zPts.push( new THREE.Vector3( -50 , 10 , -zSize/2 + buffer) )
+  zPts.push( new THREE.Vector3( -50  + lenTip, 10 , -zSize/2 + buffer) )
+  zPts.push( new THREE.Vector3( -50  - lenTip, 10 , -zSize/2 + buffer) )
   
 
+  var geoZ = new THREE.BufferGeometry().setFromPoints( zPts );
+  var zAxis = new THREE.Line( geoZ, matAxis );
+
+
+  var yPts = [];
+  yPts.push( new THREE.Vector3( -50 - lenTip, bldg_height  + buffer  ,-50 - lenTip) )
+  yPts.push( new THREE.Vector3( -50 + 2*lenTip, bldg_height  + buffer ,-50 + 2*lenTip) )
+
+  
   var geoY = new THREE.BufferGeometry().setFromPoints( yPts );
   var yAxis = new THREE.Line( geoY, matAxis );
 
 
-  var zPts = [];
-  zPts.push( new THREE.Vector3( -5 - lenTip, bldg_height / 10 + buffer  ,-5 - lenTip) )
-  zPts.push( new THREE.Vector3( -5 + 2*lenTip, bldg_height / 10 + buffer ,-5 + 2*lenTip) )
-
-  
-  var geoZ = new THREE.BufferGeometry().setFromPoints( zPts );
-  var zAxis = new THREE.Line( geoZ, matAxis );
-
-  scene.add( xAxis, yAxis, zAxis );
 
   // adding the axis labels
 
@@ -335,23 +370,23 @@ function generateAxes(){
 
   fontLoader.load("/static/fonts/Arial.json",function(fnt){ 
 
-      var params = {size: 0.5, height: 0.05,  curveSegments: 6,  font: fnt,}
+      var params = {size: 5, height: 0.5,  curveSegments: 6,  font: fnt,}
 
       var geoText = new THREE.TextGeometry(xSize.toString(), params);
 
       var  textZ = new THREE.Mesh(geoText, matText);
       geoText.computeBoundingSphere();
-      textZ.translateZ(-5 - 2 *  geoText.boundingSphere.radius);
+      textZ.translateZ(-50 - 2 *  geoText.boundingSphere.radius);
       textZ.translateX(-geoText.boundingSphere.radius);
-      textZ.translateY(1.0);
+      textZ.translateY(10);
       textZ.rotateX(-Math.PI / 2);
 
       geoText = new THREE.TextGeometry(zSize.toString(), params);
       var  textX = new THREE.Mesh(geoText, matText);
       geoText.computeBoundingSphere();
-      textX.translateX(-5 - 2 *  geoText.boundingSphere.radius);
+      textX.translateX(-50 - 2 *  geoText.boundingSphere.radius);
       textX.translateZ(-geoText.boundingSphere.radius);
-      textX.translateY(1.0);
+      textX.translateY(10);
       
       textX.rotateX(-Math.PI / 2);
       textX.rotateZ(-Math.PI / 2);
@@ -360,13 +395,22 @@ function generateAxes(){
       geoText.computeBoundingSphere();
 
       var  textY = new THREE.Mesh(geoText, matText);
-      textY.translateX(-5 - geoText.boundingSphere.radius);
-      textY.translateZ(-5  - geoText.boundingSphere.radius);
-      textY.translateY(bldg_height / 10 + 1.5  * geoText.boundingSphere.radius  );
+      textY.translateX(-50 - geoText.boundingSphere.radius);
+      textY.translateZ(-50  - geoText.boundingSphere.radius);
+      textY.translateY(buffer + bldg_height  + 1.5  * geoText.boundingSphere.radius  );
       geoText.computeBoundingSphere();
       textY.rotateY(-Math.PI / 4);
 
-      scene.add(textZ, textX, textY);
+      let axes = new THREE.Object3D();
+      axes.name = "axes";
+      axes.add(xAxis);
+      axes.add(yAxis);
+      axes.add(zAxis);
+      axes.add(textZ);
+      axes.add(textX);
+      axes.add(textY);
+
+      scene.add(axes);
   })
 
 }
@@ -409,4 +453,11 @@ document.querySelector("#downloadExterior").onclick = function()
 {
   console.log(dloadExterior)
   download("exterior.stl", dloadExterior)
+}  
+
+
+document.querySelector("#context").onclick = function()
+{
+  let toggle = $('#context').prop('checked')
+  toggleContext(toggle)
 }  

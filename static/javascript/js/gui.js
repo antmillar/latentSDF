@@ -14,6 +14,8 @@ document.querySelector("#c").width = canvas_width;
 document.querySelector("#coverage").value = coverage;
 document.querySelector("#context").checked = show_context == "true";
 
+
+
 //initialisation routine
 $(document).ready(init);
 
@@ -46,6 +48,7 @@ function init(jQuery) {
       else
       {
         document.querySelector("#slices").value = globals.slices;
+        document.querySelector("#pathPoints").value = globals.points;
         document.querySelector("#modelHeight").value = globals.height;
         document.querySelector("#modelTaper").value = document.querySelector("#taper").value
         document.querySelector("#modelRotation").value = document.querySelector("#rotation").value
