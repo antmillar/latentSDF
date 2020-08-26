@@ -83,11 +83,23 @@ function init(jQuery) {
       document.querySelector("#btnConstraint").submit();
   });
 
-  //update coverage value
+    //can only have one active constraint at time
+  //update coverage value, untick site test
   $('#coverage').on('input', function() {
 
       window.globals.coverage = document.querySelector("#coverage").value;
+      document.getElementById("constraint_site").checked = false
   });
+
+  //if site test remove coverage value
+  $("#constraint_site").on('change',  (e) => {
+
+    document.querySelector("#ssite").value = $('#constraint_site').prop('checked')
+    document.querySelector("#ssite_name").value = $('#site').prop('value')
+
+    document.querySelector("#coverage").value = "";
+    window.globals.coverage = document.querySelector("#coverage").value;
+  }  )
 
   //load torch model 
   $("#file").on('change', (e) => {

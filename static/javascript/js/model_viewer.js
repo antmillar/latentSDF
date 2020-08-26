@@ -8,7 +8,7 @@ var dloadInterior
 var dloadExterior
 
 canvas = document.querySelector('#c');
-
+var fn_site = "/static/models/inputs/context_sm.obj"
 
   //scene
   scene = new THREE.Scene();
@@ -72,15 +72,15 @@ canvas = document.querySelector('#c');
     //geometry
     let model_facade = obj.children[0];
     model_facade.name = "facade";
-    console.log("bldg model : " , model_facade)
+    // console.log("bldg model : " , model_facade)
 
     model_facade.geometry.computeVertexNormals();
     model_facade.material = matGlass2
     model_facade.castShadow = true;
 
     let ground =  new THREE.Mesh(
-      new THREE.PlaneBufferGeometry( 400, 400 ),
-      new THREE.MeshPhongMaterial( { color: 0xBBBBBB, specular: 0x101010, side: THREE.DoubleSide } )
+      new THREE.PlaneBufferGeometry( 50, 50 ),
+      new THREE.MeshPhongMaterial( { color: 0xEEEEEE, specular: 0x101010, side: THREE.DoubleSide } )
     );
     ground.receiveShadow = true;
 
@@ -101,15 +101,6 @@ canvas = document.querySelector('#c');
     generateExteriorModel(model_facade);
 
 
-    // if(window.globals.show_context == "true")
-    // {
-  
-    //   toggleContext(window.globals.show_context)
-    // }
-    // //only show the labelled axes in no context mode
-    // else
-    // {
-    // }
 
   });
 
@@ -132,27 +123,28 @@ function toggleContext(toggle)
 {
   if(toggle)
   {
+
+    
     console.log("adding context...")
 
     // LOAD THE CONTEXT OBJ FILE
     let contextLoader = new OBJLoader2();
-    let fn_cont = "/static/models/inputs/context.obj"
 
-    contextLoader.load(fn_cont, function(obj){
+    contextLoader.load(fn_site, function(obj){
 
       let matContext = new THREE.MeshPhysicalMaterial( {
         color: 0xAAAAAA,
       } );
 
       let model_context = obj.children[0];
-      console.log("context model : " , model_context)
+      // console.log("context model : " , model_context)
       model_context.material = matContext;
       let box = new THREE.Box3().setFromObject( model_context );
       let center = new THREE.Vector3();
       box.getCenter( center );
 
       // model_context.position.sub( center ); // center the model
-      // model_context.rotation.y = Math.PI;   // rotate the model
+      model_context.rotation.x = Math.PI/2;   // rotate the model
 
       //hard coded offsets for the specific context used
       // model_context.translateY(100)
@@ -166,7 +158,6 @@ function toggleContext(toggle)
     })
 
     let objToRemove = scene.getObjectByName("axes");
-    console.log(objToRemove)
     scene.remove(objToRemove)
   }
 
@@ -202,7 +193,7 @@ function loadCore(){
     } );
 
     let model = obj.children[0];
-    console.log("core model : " , model)
+    // console.log("core model : " , model)
      
     model.material = matCore;
 
@@ -445,19 +436,43 @@ function download(filename, text) {
 
 document.querySelector("#downloadInterior").onclick = function()
   {
-    console.log(dloadInterior)
+    // console.log(dloadInterior)
     download("interior.stl", dloadInterior)
   }  
 
 document.querySelector("#downloadExterior").onclick = function()
 {
-  console.log(dloadExterior)
+  // console.log(dloadExterior)
   download("exterior.stl", dloadExterior)
 }  
 
 
-document.querySelector("#context").onclick = function()
+document.querySelector("#context").onchange = function()
 {
   let toggle = $('#context').prop('checked')
   toggleContext(toggle)
+}  
+
+document.querySelector("#site").onchange = function()
+{
+  let select_site = $('#site').prop('value')
+
+  if(document.getElementById("context").checked == true)
+  {
+    console.log("removing context...")
+    let objToRemove = scene.getObjectByName("context");
+    scene.remove(objToRemove)
+    document.getElementById("context").checked = false
+  }
+
+  if(select_site == "Canary Wharf")
+  {
+    fn_site = "/static/models/inputs/context_cw.obj";
+    document.getElementById("site_image").src = "static/img/site_footprint_cw.png";
+  }
+  else if (select_site == "St Mary Axe")
+  {
+    fn_site = "/static/models/inputs/context_sm.obj"
+    document.getElementById("site_image").src = "static/img/site_footprint_sm.png";
+  }
 }  

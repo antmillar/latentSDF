@@ -40,12 +40,13 @@ Details = namedtuple("Details", ["Floors", "Taper", "FloorRotation", "MaxCoverag
 Bounds = namedtuple('Bounds', ['xMin', 'xMax', 'yMin', 'yMax'])
 latent_bounds = Bounds(-1.5, 1.0, -1.0, 1.0)
 img_source  = '/static/img/latent_grid.png'
-img_source_hm  = '/static/img/coverage_heatmap.png'
+img_source_hm  = '/static/img/constraint_heatmap.png'
 
 active_model = ''
 torch_model =  cwd + '/static/models/torch/default.pth'
 height = 100
 coverage = ""
+check_site_boundary = ""
 latent_loaded = False
 contours = False
 floors = False
@@ -233,11 +234,27 @@ def main():
         #update the latent space
         if(request.form.get("scoverage") == ""):
 
-            global coverage
-            coverage = ""
-            latent_space.updateLatent(latent_bounds, torch_model, latents, coverage)
+
+            if(request.form.get("ssite")):
+
+                print("building site extents heatmap...")
+
+                site_name = request.form.get("ssite_name")
+
+                check_site_boundary = request.form.get("ssite")
+
+                latent_space.updateLatent(latent_bounds, torch_model, latents, site_name, coverage_threshold = False, check_site_boundary = check_site_boundary)
+            else:
+
+                global coverage
+                coverage = ""
+                latent_space.updateLatent(latent_bounds, torch_model, latents, coverage_threshold = False) 
+        
+
 
         if(request.form.get("scoverage")):
+
+            print("building coverage heatmap...")
 
             coverage = request.form.get("scoverage")
 
@@ -247,7 +264,10 @@ def main():
             except:
                 coverage = ""
 
-            latent_space.updateLatent(latent_bounds, torch_model, latents, coverage)
+            latent_space.updateLatent(latent_bounds, torch_model, latents, coverage_threshold =  coverage, check_site_boundary = False)
+
+
+
 
 
     return render_template('main.html', latent_bounds = list(latent_bounds), img_source = img_source, img_source_hm = img_source_hm, active_model = active_model, height = height, points=points, coverage = coverage, contours = contours, floors = floors, model_details = model_details, annotations = annotations, show_context=show_context)

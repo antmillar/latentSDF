@@ -56,7 +56,7 @@
       <div class="row " >
     
         <div class ="row">
-          <div class="col-md-6 text-center  " >
+          <div class="col-md-5 text-center  " >
     
             <form id = "loadData" action = "/uploader" method = "POST" enctype="multipart/form-data">
               <div class="input-group mb-3">
@@ -69,9 +69,9 @@
               </div>
     
             </form>
-          </div>
+          </div>`
     
-         <div class="col-md-6 text-center  " >
+         <div class="col-md-5 offset-1 text-center  " >
             <form id = "launchAnalysis"  action="/analysis">
               <button type="button" class="btn-sm  button2 inputBox" id = "analysis" name = "analysis" >Launch Design Analysis</button>
             </form>
@@ -255,6 +255,39 @@
         </div>
 
 
+ 
+
+        <div class="form-group form-inline">
+          <div class="col-6">
+            <small for="site">Choose Site</small>
+
+          </div>
+          <div class="col-6">
+            <select class="inputBox text-center" id="site">
+              <option>St Mary Axe</option>
+              <option>Canary Wharf</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="form-group form-inline">
+          <div class="col-6">
+            <small for="site_image">Site Footprint</small>
+
+          </div>
+          <div class="col-6">
+            <img src="static/img/site_footprint_sm.png" width = 70 height = 70 id="site_image">
+          </div>
+        </div>
+
+        <div class="form-group form-inline">
+          <div class="col-6">
+            <small for="taper">Filter Site</small>
+          </div>
+          <div class="col-6">
+            <input type="checkbox" class="inputBox text-center" id="constraint_site" name="constraint_site"  >
+          </div>
+        </div>
 
       </div>
 
@@ -286,6 +319,7 @@
             <input type="checkbox" class="inputBox text-center" id="context" name="context"  >
           </div>
         </div>
+        
 
   </div>
 
@@ -322,6 +356,8 @@
 <form action="" method="POST" id = "btnConstraint">
 
   <input type="hidden" id = "scoverage" name = "scoverage">
+  <input type="hidden" id = "ssite" name = "ssite">
+  <input type="hidden" id = "ssite_name" name = "ssite_name">
 
 </form>
 
