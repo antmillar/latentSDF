@@ -1,9 +1,9 @@
 import numpy as np
 import torch
 import matplotlib.pyplot as plt
-from.utils import funcTimer, load_torch_model
+from.utils import funcTimer, load_torch_model, get_area_covered, get_site_excess
 import os
-from.utils import funcTimer, get_area_covered
+from .architectures import deepSDFCodedShape
 import seaborn as sns
 from matplotlib.offsetbox import OffsetImage, AnnotationBbox
 
@@ -40,8 +40,9 @@ class LatentGrid():
     
 
 grid = LatentGrid(10)
+site_grid = LatentGrid(10)
 
-def updateLatent(latentBounds,  model_path, latents, coverageThreshold = False):
+def updateLatent(latentBounds,  model_path, latents, site_name = "St Mary Axe",  coverage_threshold = False, check_site_boundary = False):
     """
     Updates the Latent Space Image and Related Data
 
@@ -56,7 +57,7 @@ def updateLatent(latentBounds,  model_path, latents, coverageThreshold = False):
     print("loading model...")
     model = load_torch_model(model_path)
 
-    interpolate_grid(model, latentBounds, latents, coverageThreshold)
+    interpolate_grid(model, latentBounds, latents, site_name,  coverage_threshold, check_site_boundary)
 
 def check_bounds(latentBounds):
     
@@ -70,7 +71,7 @@ def check_bounds(latentBounds):
     print("bounds valid")
     
 @funcTimer
-def interpolate_grid(model, latentBounds, latents : np.array, coverageThreshold, num = 10):
+def interpolate_grid(model, latentBounds, latents : np.array, site_name, coverage_threshold, check_site_boundary, num = 10):
     """Generates an image of the latent space containing seed and interpolated designs
 
     Args:
@@ -80,6 +81,7 @@ def interpolate_grid(model, latentBounds, latents : np.array, coverageThreshold,
     """
     ##reset the latent grid stored
     grid.reset()
+    site_grid.reset()
     
     print("generating latent grid...")
     fig, axs = plt.subplots(num, num, figsize=(16, 16))
@@ -100,9 +102,11 @@ def interpolate_grid(model, latentBounds, latents : np.array, coverageThreshold,
             latent = torch.tensor( [float(i),  float(j)]).to(device)
             # plot_sdf_from_latent( latent, model.forward, show_axis = False, ax =  axs[index,jindex])
             
-            im, coverage = process_latent(model, latent, grid)
+            im, coverage, site_excess = process_latent(model, latent, site_name, grid)
 
             grid.addCoverage( num - 1 - jindex, index, coverage)
+            site_grid.addCoverage( num - 1 - jindex, index, site_excess)
+
 
             if([i, j] in closestLatents):
                 #starts top left
@@ -128,27 +132,48 @@ def interpolate_grid(model, latentBounds, latents : np.array, coverageThreshold,
             axs[num - 1 - jindex, index].axis("off")
             # axs[num - 1 - jindex, index].set_aspect('equal')
     
-    grid_is_transparent = False
-    values = grid.grid
-    if(coverageThreshold):
-        threshold = coverageThreshold / 100.0
-        grid_is_transparent = True
 
-    else:
-        threshold = 0.5
-        values = np.ones(grid.grid.shape) * 0.5
-    
+    #####
+    grid_is_transparent = False
+
+    if(coverage_threshold != False or check_site_boundary != False):
+
+        create_heatmap(coverage_threshold)
+        grid_is_transparent = True
+            
+    fig.savefig(os.path.join(dir_image, 'latent_grid.png'), transparent=grid_is_transparent)
+
+def create_heatmap(coverage_threshold):
+
+    #by default create heatmap for site extents, where 1% is the threshold, otherwise coverage threshold
+    values = site_grid.grid
+    threshold = 1
+    start_color = 150
+    end_color = 5
+    vmin = 0.0
+    vmax = 10
+
+    if(coverage_threshold != False):
+        threshold = coverage_threshold / 100.0
+        grid_is_transparent = True
+        values = grid.grid
+        start_color = 5
+        end_color = 150
+        vmin = 0.0
+        vmax = 1.0
+
+
     fig2, ax2 = plt.subplots(figsize=(16,16))
 
     #red green diverging palette
-    cmap = sns.diverging_palette(5, 150, n=10, as_cmap=True)
+    cmap = sns.diverging_palette(start_color, end_color, n=10, as_cmap=True)
 
-    ax2 = sns.heatmap(values, cmap = cmap, cbar=False, center = threshold, vmin = 0.0, vmax = 1.0)
+    ax2 = sns.heatmap(values, cmap = cmap, cbar=False, center = threshold, vmin = vmin, vmax = vmax)
     ax2.axis('off')
 
-    fig2.savefig(os.path.join(dir_image, 'coverage_heatmap.png'), pad_inches=0, bbox_inches = 'tight')
-            
-    fig.savefig(os.path.join(dir_image, 'latent_grid.png'), transparent=grid_is_transparent)
+    fig2.savefig(os.path.join(dir_image, 'constraint_heatmap.png'), pad_inches=0, bbox_inches = 'tight')
+    ######
+
 
 def find_seeds(latentBounds, xAx, yAx, latents):
 
@@ -187,11 +212,11 @@ def find_seeds(latentBounds, xAx, yAx, latents):
         closestLatents.append(closest)
     return closestLatents
 
-def process_latent(model, latent, invert = False,  res = 50):
+def process_latent(model, latent, site_name , invert = False,  res = 50):
 
     ptsSample = np.float_([[x, y] 
                 for x in np.linspace(-50, 50, res) 
-                for y in np.linspace(-50, 50, res)])
+                for y in np.linspace(50, -50, res)])
     pts = torch.Tensor(ptsSample).to(device)
 
     #generate sdf from latent vector using model
@@ -199,7 +224,9 @@ def process_latent(model, latent, invert = False,  res = 50):
     # sdf = model.forward(latent, pts)
 
     coverage = get_area_covered(sdf)
+    site_excess = get_site_excess(sdf, site_name)
     pixels = sdf.view(res, res)
+    # print(site_excess)
 
     if(invert):
         mask = pixels > 0
@@ -212,7 +239,7 @@ def process_latent(model, latent, invert = False,  res = 50):
     # im = Image.fromarray(vals * 255.0).convert("RGB")
     # im.save(os.path.join(dir_output, "test.png"))
 
-    return vals, coverage
+    return vals, coverage, site_excess
 
 def prepare_analysis(model_path, latents):
     '''

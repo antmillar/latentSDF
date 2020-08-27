@@ -1,9 +1,12 @@
 import time
 import numpy as np
+
 from .architectures import deepSDFCodedShape
 import torch 
 
 device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+
+from PIL import Image
 
 
 def funcTimer(func):
@@ -44,3 +47,28 @@ def load_torch_model(model_path):
     model.load_state_dict(new_params)
 
     return model
+
+
+def get_site_excess(sdf, site_name):
+
+    '''
+    Tests whether the sdf stays within the specified site footprint mask
+    '''
+
+    temp = sdf.cpu().detach().numpy().reshape(50, 50)
+
+    if(site_name == "Canary Wharf"):
+        site_footprint = np.array(Image.open('static\img\site_footprint_cw.png').resize((50, 50)).convert('L')) / 255.0
+
+    elif(site_name == "St Mary Axe"):
+    
+        site_footprint = np.array(Image.open('static\img\site_footprint_sm.png').resize((50, 50)).convert('L')) / 255.0
+
+    outside_site = site_footprint > 0.1
+    within_bldg = temp < 0.1
+    out_of_bounds = np.logical_and(within_bldg, outside_site)
+
+    excess = np.sum(out_of_bounds) / (50*50) * 100.0
+
+    return excess
+

@@ -40,12 +40,13 @@ Details = namedtuple("Details", ["Floors", "Taper", "FloorRotation", "MaxCoverag
 Bounds = namedtuple('Bounds', ['xMin', 'xMax', 'yMin', 'yMax'])
 latent_bounds = Bounds(-1.5, 1.0, -1.0, 1.0)
 img_source  = '/static/img/latent_grid.png'
-img_source_hm  = '/static/img/coverage_heatmap.png'
+img_source_hm  = '/static/img/constraint_heatmap.png'
 
 active_model = ''
-torch_model =  '/home/anthony/repos/latentSDF/static/models/torch/default.pth'
-height = 50
+torch_model =  cwd + '/static/models/torch/default.pth'
+height = 100
 coverage = ""
+check_site_boundary = ""
 latent_loaded = False
 contours = False
 floors = False
@@ -54,6 +55,7 @@ model_details = Details(0,0,0,0,0)
 latents = np.empty([0])
 annotations = np.empty([0])
 distances = np.empty([0])
+points = ""
 
 titles = np.empty([0])
 
@@ -66,6 +68,7 @@ titles = np.empty([0])
 #3d latent space
 # bug after the model is loaded and then restarted
 #reset distance explorer at beginning
+
 
 
 #base route
@@ -102,7 +105,6 @@ def upload_file():
 
         return render_template('main.html', latent_bounds = list(latent_bounds), img_source = img_source, img_source_hm = img_source_hm, active_model = active_model, height = height, coverage = coverage, contours = contours, floors = floors, model_details = model_details, annotations = annotations, show_context=show_context)
         
-        # return redirect(url_for('main', latent_bounds = list(latent_bounds), img_source = img_source, img_source_hm = img_source_hm, active_model = active_model, height = height, coverage = coverage, contours = contours, floors = floors, model_details = model_details, annotations = annotations, show_context=show_context))
 
 
 @app.route('/downloader', methods = ['GET'])
@@ -123,12 +125,7 @@ def main():
     #on load create latent image 
     if(not latent_loaded):
 
-        #delete old models on restart
-        files = glob.glob(output_path + "/*")
-        for f in files:
-            
-            os.remove(f)
-            print(f"deleted - {f}")
+     
 
         latent_space.updateLatent(latent_bounds, torch_model, latents)
         latent_loaded = True
@@ -190,7 +187,15 @@ def main():
         #generate 3d model
         if(request.form.get("generateSlices")):
 
-            global height, show_context
+            #delete old models
+            files = glob.glob(output_path + "/*")
+            for f in files:
+            
+                os.remove(f)
+                print(f"deleted - {f}")
+
+
+            global height, show_context, points
             height = int(request.form.get("modelHeight"))
 
             try:
@@ -206,6 +211,8 @@ def main():
                 rotation = 0
 
             show_context = request.form.get("show_context")
+
+            points = request.form.get("pathPoints")
 
             slice_vectors = request.form.get("slices")
             slice_vectors = slice_vectors.split(",")
@@ -231,11 +238,27 @@ def main():
         #update the latent space
         if(request.form.get("scoverage") == ""):
 
-            global coverage
-            coverage = ""
-            latent_space.updateLatent(latent_bounds, torch_model, latents, coverage)
+
+            if(request.form.get("ssite")):
+
+                print("building site extents heatmap...")
+
+                site_name = request.form.get("ssite_name")
+
+                check_site_boundary = request.form.get("ssite")
+
+                latent_space.updateLatent(latent_bounds, torch_model, latents, site_name, coverage_threshold = False, check_site_boundary = check_site_boundary)
+            else:
+
+                global coverage
+                coverage = ""
+                latent_space.updateLatent(latent_bounds, torch_model, latents, coverage_threshold = False) 
+        
+
 
         if(request.form.get("scoverage")):
+
+            print("building coverage heatmap...")
 
             coverage = request.form.get("scoverage")
 
@@ -245,10 +268,13 @@ def main():
             except:
                 coverage = ""
 
-            latent_space.updateLatent(latent_bounds, torch_model, latents, coverage)
+            latent_space.updateLatent(latent_bounds, torch_model, latents, coverage_threshold =  coverage, check_site_boundary = False)
 
 
-    return render_template('main.html', latent_bounds = list(latent_bounds), img_source = img_source, img_source_hm = img_source_hm, active_model = active_model, height = height, coverage = coverage, contours = contours, floors = floors, model_details = model_details, annotations = annotations, show_context=show_context)
+
+
+
+    return render_template('main.html', latent_bounds = list(latent_bounds), img_source = img_source, img_source_hm = img_source_hm, active_model = active_model, height = height, points=points, coverage = coverage, contours = contours, floors = floors, model_details = model_details, annotations = annotations, show_context=show_context)
 
 
 if __name__ == '__main__':
