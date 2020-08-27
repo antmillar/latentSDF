@@ -3,7 +3,7 @@ import os
 import torch
 from torch.utils.data import DataLoader
 from .architectures import deepSDFCodedShape
-from.utils import funcTimer, get_area_covered
+from.utils import funcTimer, get_area_covered,load_torch_model
 
 from pathlib import Path
 import numpy
@@ -109,9 +109,7 @@ def generateModel(slice_vectors, height, taper, rotation, model_path):
     slice_count = len(slice_vectors)
  
     print("loading model...")
-    print(model_path)
-    model = deepSDFCodedShape()#.cuda()
-    model.load_state_dict(torch.load(model_path, map_location=device))
+    model = load_torch_model(model_path)
 
     slices = []
     coverages = []

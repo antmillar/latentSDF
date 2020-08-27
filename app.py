@@ -98,57 +98,11 @@ def modelView():
 @app.route('/uploader', methods = ['GET', 'POST'])
 def upload_file():
 
-        f = request.files['file']
 
-        #load zip file and extract latents and model
-        if(f.filename[-4:].lower() == ".zip"):
 
-            fileToCopy = secure_filename(f.filename)
-            fn = os.path.join(model_path, fileToCopy)
-            f.save(fn)
-            print(f"file : {f.filename} uploaded successfully")
-
-            with zipfile.ZipFile(fn, 'r') as zip_ref:
-                zip_ref.extractall(model_path)
-            
-            #load the model from the zip
-            global torch_model
-            torch_model = model_path + "model.pth"
-
-            #load the latents from the zip
-            global annotations, latents, titles
-            float_formatter = "{:.2f}".format
-            np.set_printoptions(formatter={'float_kind':float_formatter})
-            annotations = np.load(model_path + "seeds.npy").astype(object) #object type as need to hold lists not just values
-
-            titles = annotations[0, :]
-            annotations = annotations[1:, :]
-
-            #convert string latents to lists
-            latents = [json.loads(latent) for latent, *_ in annotations]
-            annotations[:,0] = latents 
-
-            #sort by x coord
-            sortedOrder = np.array(latents)[:,0].argsort()
-            annotations[0:,:] = annotations[0:,:][sortedOrder]
-
-            #add 1-indexed column
-            annotations = np.c_[np.array([i for i in range(1, annotations.shape[0] + 1)]), annotations]
-
-            #update bounds
-            minX = min(val[0] for val in latents)
-            maxX = max(val[0] for val in latents)
-            minY = min(val[1] for val in latents)
-            maxY = max(val[1] for val in latents)
-            
-            latent_bounds = Bounds(minX, maxX, minY, maxY)
-            latent_space.updateLatent(latent_bounds, torch_model, latents)
-
-        else:
-
-            print("Invalid File Type")
+        return render_template('main.html', latent_bounds = list(latent_bounds), img_source = img_source, img_source_hm = img_source_hm, active_model = active_model, height = height, coverage = coverage, contours = contours, floors = floors, model_details = model_details, annotations = annotations, show_context=show_context)
         
-        return redirect(url_for('main', latent_bounds = list(latent_bounds), img_source = img_source, img_source_hm = img_source_hm, active_model = active_model, height = height, coverage = coverage, contours = contours, floors = floors, model_details = model_details, annotations = annotations, show_context=show_context))
+        # return redirect(url_for('main', latent_bounds = list(latent_bounds), img_source = img_source, img_source_hm = img_source_hm, active_model = active_model, height = height, coverage = coverage, contours = contours, floors = floors, model_details = model_details, annotations = annotations, show_context=show_context))
 
 
 @app.route('/downloader', methods = ['GET'])
@@ -164,7 +118,7 @@ def download_file():
 @app.route('/main',  methods = ["GET", "POST"])
 def main():
 
-    global latent_bounds, latent_loaded
+    global latent_bounds, latent_loaded, torch_model, annotations, latents, titles
 
     #on load create latent image 
     if(not latent_loaded):
@@ -180,6 +134,58 @@ def main():
         latent_loaded = True
 
     if request.method == 'POST': 
+
+        #if file uploaded
+        if(request.files):
+            print("uploading file...")
+
+            f = request.files['file']
+
+            #load zip file and extract latents and model
+            if(f.filename[-4:].lower() == ".zip"):
+
+                fileToCopy = secure_filename(f.filename)
+                fn = os.path.join(model_path, fileToCopy)
+                f.save(fn)
+                print(f"file : {f.filename} uploaded successfully")
+
+                with zipfile.ZipFile(fn, 'r') as zip_ref:
+                    zip_ref.extractall(model_path)
+                
+                #load the model from the zip
+                torch_model = model_path + "model.pth"
+
+                #load the latents from the zip
+                float_formatter = "{:.2f}".format
+                np.set_printoptions(formatter={'float_kind':float_formatter})
+                annotations = np.load(model_path + "seeds.npy").astype(object) #object type as need to hold lists not just values
+
+                titles = annotations[0, :]
+                annotations = annotations[1:, :]
+
+                #convert string latents to lists
+                latents = [json.loads(latent) for latent, *_ in annotations]
+                annotations[:,0] = latents 
+
+                #sort by x coord
+                sortedOrder = np.array(latents)[:,0].argsort()
+                annotations[0:,:] = annotations[0:,:][sortedOrder]
+
+                #add 1-indexed column
+                annotations = np.c_[np.array([i for i in range(1, annotations.shape[0] + 1)]), annotations]
+
+                #update bounds
+                minX = min(val[0] for val in latents)
+                maxX = max(val[0] for val in latents)
+                minY = min(val[1] for val in latents)
+                maxY = max(val[1] for val in latents)
+                
+                latent_bounds = Bounds(minX, maxX, minY, maxY)
+                latent_space.updateLatent(latent_bounds, torch_model, latents)
+
+            else:
+
+                print("Invalid File Type")
  
         #generate 3d model
         if(request.form.get("generateSlices")):
