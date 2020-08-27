@@ -208,7 +208,6 @@ def main():
             show_context = request.form.get("show_context")
 
             points = request.form.get("pathPoints")
-            print("ASDDAAAAAAAAAAAAAAAA", points)
 
             slice_vectors = request.form.get("slices")
             slice_vectors = slice_vectors.split(",")
@@ -234,7 +233,7 @@ def main():
         #update the latent space
         if(request.form.get("scoverage") == ""):
 
-
+            print("OL", request.form.get("ssite"))
             if(request.form.get("ssite")):
 
                 print("building site extents heatmap...")

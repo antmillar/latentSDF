@@ -71,11 +71,7 @@ function init(jQuery) {
     console.log(window.globals.slice_count)
   });
 
-  //update discrete on/off
-  $('#discrete').on('change', function() {
-    window.globals.discrete  = $('#discrete').prop('checked')
-    console.log($('#discrete').prop('checked'))
-  });
+
 
   //update constraint
   $("#constraint").on('click', (e) => {

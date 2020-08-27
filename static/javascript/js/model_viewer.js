@@ -101,7 +101,6 @@ var fn_site = "/static/models/inputs/context_sm.obj"
     generateExteriorModel(model_facade);
 
 
-
   });
 
  
@@ -452,6 +451,11 @@ document.querySelector("#context").onchange = function()
   let toggle = $('#context').prop('checked')
   toggleContext(toggle)
 }  
+
+window.onload = (event) => {
+  let toggle = $('#context').prop('checked')
+  toggleContext(toggle)
+};
 
 document.querySelector("#site").onchange = function()
 {

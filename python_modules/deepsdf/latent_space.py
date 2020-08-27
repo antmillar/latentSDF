@@ -26,11 +26,11 @@ class LatentGrid():
         self.grid = np.empty([dims, dims])
         self.dims = dims
 
-    def addCoverage(self, x, y, coverage):
+    def addValue(self, x, y, value):
 
-        self.grid[x, y] = coverage
+        self.grid[x, y] = value
 
-    def getCoverage(self, x, y):
+    def getValue(self, x, y):
 
         return self.grid[x, y]
     
@@ -111,8 +111,8 @@ def interpolate_grid(model, latentBounds, latents : np.array, site_name, coverag
             
             im, coverage, site_excess = process_latent(model, latent, site_name, grid)
 
-            grid.addCoverage( num - 1 - jindex, index, coverage)
-            site_grid.addCoverage( num - 1 - jindex, index, site_excess)
+            grid.addValue( num - 1 - jindex, index, coverage)
+            site_grid.addValue( num - 1 - jindex, index, site_excess)
 
 
             if([i, j] in closestLatents):
@@ -242,9 +242,6 @@ def process_latent(model, latent, site_name , invert = False,  res = 50):
 
     vals = mask.type(torch.uint8) * 255
     vals = vals.cpu().detach().numpy()
-
-    # im = Image.fromarray(vals * 255.0).convert("RGB")
-    # im.save(os.path.join(dir_output, "test.png"))
 
     return vals, coverage, site_excess
 

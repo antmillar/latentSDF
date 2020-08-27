@@ -360,3 +360,12 @@ document.querySelector("#downloadPath").onclick = function()
 {
     downloadCanvas("latent_path.png")
 }  
+
+
+//update discrete on/off
+$('#discrete').on('change', function() {
+window.globals.discrete  = $('#discrete').prop('checked')
+console.log($('#discrete').prop('checked'))
+extractSlices(globals.slice_count * globals.height, nodes);
+
+});
