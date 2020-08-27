@@ -3,14 +3,12 @@
 {% block content %}
 
 
-<script type="text/paperscript" src="static/javascript/js/path_plotter.js" canvas="paperCanvas" ></script>
-<script type = "module" src="static/javascript/js/model_viewer.js"   ></script>
+<script type="text/paperscript" src="static/javascript/js/path_plotter.js" canvas="paperCanvas" defer ></script>
+<script type = "module" src="static/javascript/js/model_viewer.js"  defer ></script>
 <script type="text/javascript" src="static/javascript/js/gui.js"  defer></script>
 
 <script type="text/javascript">  
   var latent_bounds = {{ latent_bounds|tojson }};  
-  var img_source = {{ img_source|tojson }};  
-  var img_source_hm = {{ img_source_hm|tojson }};  
 
   var active_model =  {{ active_model|tojson }};
   var height =  {{ height|tojson }};
@@ -29,8 +27,6 @@
     getSlices: function() {},
     slices:  [],
     latent_bounds: latent_bounds,
-    latent_img_source : img_source,
-    heatmap_img_source : img_source_hm,
     active_model: active_model,
     height: height,
     coverage: coverage,
@@ -69,7 +65,7 @@
               </div>
     
             </form>
-          </div>`
+          </div>
     
          <div class="col-md-5 offset-1 text-center  " >
             <form id = "launchAnalysis"  action="/analysis">
@@ -108,9 +104,17 @@
          </div>
     
         <div class="col-md-6  text-center  " >
-          <button type="button" class="btn-sm inputBox "  id = "downloadPath" name = "downloadPath">Download Latent Path</button>
+          <button type="button" class="btn-sm inputBox "  id = "downloadPath" name = "downloadPath">Cycle Latent Display</button>
         </div>
       </div>
+
+      <div class ="row">
+        <div class="col-md-6  text-center  " >
+          <button type="button" class="btn-sm inputBox " id = "downloadSnapshot" name = "downloadSnapshot" >Download Snapshot</button>
+         </div>
+
+      </div>
+
 
 
     </div>  

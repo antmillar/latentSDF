@@ -31,7 +31,7 @@ lastPath.strokeWidth = 1.5;
 
 //add background canvas image
 var raster = new Raster({
-    source: globals.latent_img_source,
+    source: "/static/img/latent_grid.png",
     position: view.center
 });
 
@@ -46,7 +46,7 @@ raster.rescale(width, width);
 
 //add heatmap image
 var rasterHM = new Raster({
-    source: globals.heatmap_img_source,
+    source:'/static/img/constraint_heatmap.png',
     position: view.center
 });
 
@@ -73,13 +73,14 @@ for(i = 0; i < point_arr.length; i += 2)
   lastPath.add(pt);
   lastPath.smooth();
 }
-var n = new Path.Circle(last_points[0], 5);
-n.strokeColor = new Color(0.0,0.5, 0.25, 0.8);
 
-n.strokeWidth = 3;
-var m = new Path.Circle(last_points.slice(-1)[0], 5);
-m.strokeColor = new Color(1.0, 0.0, 0.0, 0.8);
-m.strokeWidth = 3;
+var lastPathStart = new Path.Circle(last_points[0], 5);
+lastPathStart.strokeColor = new Color(0.0,0.5, 0.25, 0.8);
+lastPathStart.strokeWidth = 3;
+
+var lastPathEnd = new Path.Circle(last_points.slice(-1)[0], 5);
+lastPathEnd.strokeColor = new Color(1.0, 0.0, 0.0, 0.8);
+lastPathEnd.strokeWidth = 3;
 
 
 lastArrows = addArrows(lastArrows, last_points, lastPath)
@@ -288,7 +289,7 @@ function onMouseDown(event) {
 
         if(points.length > 0)
         {
-            var pointToRemove = points.pop();
+            points.pop();
         }
 
         if(arrows.length > 0)
@@ -312,7 +313,7 @@ function addArrows(arws, arr, pth)
 
     arws = []
 
-    for(var i = 1; i < arr.length; i++)
+    for(var i = 1; i < arr.length - 1; i++)
     {
         var offset = pth.getLocationOf(arr[i]).offset;
 
@@ -338,34 +339,54 @@ function addArrows(arws, arr, pth)
 }
 
 
-function downloadCanvas(filename){
-
-    var thisImage = new Image();
-    thisImage = document.getElementById("paperCanvas").toDataURL("image/png");
-    
-    var element = document.createElement('a');
-    element.setAttribute('download', filename);
-    element.setAttribute('href', thisImage);
-    element.style.display = 'none';
-    document.body.appendChild(element);
-
-    element.click();
-    document.body.removeChild(element);
 
 
-    // document.getElementById("downloader").href = document.getElementById("canvas").toDataURL("image/png").replace(/^data:image\/[^;]/, 'data:application/octet-stream');
+function cycleObjects()
+{
+    if(raster.opacity == 1 && lastPath.opacity == 1)
+    {
+        raster.opacity = 0;
+        rasterHM.opacity = 0;
+        showAll = false;
+    }
+    else if(lastPath.opacity == 1)
+    {
+        raster.opacity = 1;
+        rasterHM.opacity = 1;
+        lastPath.opacity = 0;
+        lastPathStart.opacity = 0;
+        lastPathEnd.opacity = 0;
+
+        for(i = 0; i < lastArrows.length; i++)
+        {      
+            lastArrows[i].opacity = 0;
+        }
+    }
+    else
+    {
+        lastPath.opacity = 1;
+        for(i = 0; i < lastArrows.length; i++)
+        {      
+            lastArrows[i].opacity = 1;
+
+        }
+        lastPathStart.opacity = 1;
+        lastPathEnd.opacity = 1;
+    }
 }
+
 
 document.querySelector("#downloadPath").onclick = function()
 {
-    downloadCanvas("latent_path.png")
+    cycleObjects();
+
 }  
 
 
 //update discrete on/off
 $('#discrete').on('change', function() {
-window.globals.discrete  = $('#discrete').prop('checked')
-console.log($('#discrete').prop('checked'))
-extractSlices(globals.slice_count * globals.height, nodes);
+    window.globals.discrete  = $('#discrete').prop('checked')
+    console.log($('#discrete').prop('checked'))
+    extractSlices(globals.slice_count * globals.height, nodes); 
 
 });

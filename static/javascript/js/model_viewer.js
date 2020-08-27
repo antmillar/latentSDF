@@ -12,34 +12,33 @@ var fn_site = "/static/models/inputs/context_sm.obj"
 
   //scene
   scene = new THREE.Scene();
-  scene.background = new THREE.Color(0xDDDDDD);
+  scene.background = new THREE.Color(0xBBBBBB);
 
   //camera
   const fov = 45;
   const aspect = 1;  // the canvas default
   const clipNear = 0.01;
   const clipFar = 5000;
-  const radius = 300
+  const radius = 500
   camera = new THREE.PerspectiveCamera(fov, aspect, clipNear, clipFar);
-  camera.position.set(radius * Math.cos( 1.5 * Math.PI/4) , radius/2, radius * Math.sin( 2 * Math.PI/4));
-  camera.lookAt( 0, 0, 0 );
+  camera.position.set(radius * 1.1 * Math.cos( Math.PI/4) , radius * 0.5, radius * 0.5);
 
   //mouse controls
   const controls = new OrbitControls(camera, canvas);
-  controls.target.set(0, 5, 0);
+  controls.target.set(0, 50, 0);
   controls.update();
 
-  var ambient = new THREE.AmbientLight( 0xffffff );
+  var ambient = new THREE.AmbientLight( 0xbbbbbb );
   scene.add( ambient );
-  scene.fog = new THREE.Fog( 0xBBBBBB, 200, 1500  );
+  scene.fog = new THREE.Fog( 0xBBBBBB, 500, 2000  );
 
-  var dirLight = new THREE.DirectionalLight( 0xffffff, 0.5);
-  dirLight.position.set( -20, 20, 20 );
+  var dirLight = new THREE.DirectionalLight( 0xffffff, 1);
+  dirLight.position.set( -200, 200, 200 );
   dirLight.castShadow = true;
-  dirLight.shadow.mapSize = new THREE.Vector2(128, 128);
+  // dirLight.shadow.mapSize = new THREE.Vector2(512, 512);
   scene.add(dirLight);
 
-  renderer = new THREE.WebGLRenderer({antialias:true, canvas : canvas});
+  renderer = new THREE.WebGLRenderer({preserveDrawingBuffer: true , antialias:true, canvas : canvas});
   let width = canvas_width;
   let height = canvas_height;
   renderer.setPixelRatio( window.devicePixelRatio );
@@ -79,8 +78,8 @@ var fn_site = "/static/models/inputs/context_sm.obj"
     model_facade.castShadow = true;
 
     let ground =  new THREE.Mesh(
-      new THREE.PlaneBufferGeometry( 50, 50 ),
-      new THREE.MeshPhongMaterial( { color: 0xEEEEEE, specular: 0x101010, side: THREE.DoubleSide } )
+      new THREE.PlaneBufferGeometry( 5000, 5000 ),
+      new THREE.MeshPhongMaterial( { color: 0xBBBBBB, side: THREE.DoubleSide } )
     );
     ground.receiveShadow = true;
 
@@ -96,7 +95,7 @@ var fn_site = "/static/models/inputs/context_sm.obj"
 
     generateInteriorModel(scene);
 
-    scene.add(model_facade);
+    scene.add(model_facade, ground);
 
     generateExteriorModel(model_facade);
 
@@ -138,6 +137,7 @@ function toggleContext(toggle)
       let model_context = obj.children[0];
       // console.log("context model : " , model_context)
       model_context.material = matContext;
+      model_context.receiveShadow = true;
       let box = new THREE.Box3().setFromObject( model_context );
       let center = new THREE.Vector3();
       box.getCenter( center );
@@ -156,8 +156,12 @@ function toggleContext(toggle)
 
     })
 
+    let objFacade = scene.getObjectByName("facade");
+
+    console.log(objFacade)
     let objToRemove = scene.getObjectByName("axes");
     scene.remove(objToRemove)
+
   }
 
   else
@@ -391,7 +395,9 @@ function generateAxes(model_facade){
       geoText.computeBoundingSphere();
       textY.rotateY(-Math.PI / 4);
 
-      let axes = new THREE.Object3D();
+      var axes = new THREE.Object3D();
+
+      console.log(axes)
       axes.name = "axes";
       axes.add(xAxis);
       axes.add(yAxis);
@@ -406,18 +412,30 @@ function generateAxes(model_facade){
 }
 function generateInteriorModel(data) {
 
+//rotating for rhino axes
+// data.geometry.rotateX( Math.PI / 2); 
+
 // Instantiate an exporter
 var exporter = new STLExporter();
 // Parse the input and generate the ply output
 dloadInterior = exporter.parse( data );
+
+// data.geometry.rotateX( -Math.PI / 2); 
+
 }
 
 function generateExteriorModel(data) {
+
+//rotating for rhino axes
+data.geometry.rotateX( Math.PI / 2); 
 
   // Instantiate an exporter
 var exporter = new STLExporter();
 // Parse the input and generate the ply output
 dloadExterior = exporter.parse( data );
+
+data.geometry.rotateX( -Math.PI / 2); 
+
 }
 
 //https://ourcodeworld.com/articles/read/189/how-to-create-a-file-and-generate-a-download-with-javascript-in-the-browser-without-a-server
@@ -433,17 +451,40 @@ function download(filename, text) {
   document.body.removeChild(element);
 }
 
+function downloadCanvas(filename){
+
+  var thisImage = new Image();
+  thisImage = document.getElementById("c").toDataURL("image/png");
+  
+  var element = document.createElement('a');
+  element.setAttribute('download', filename);
+  element.setAttribute('href', thisImage);
+  element.style.display = 'none';
+  document.body.appendChild(element);
+
+  element.click();
+  document.body.removeChild(element);
+}
+
+
 document.querySelector("#downloadInterior").onclick = function()
   {
     // console.log(dloadInterior)
-    download("interior.stl", dloadInterior)
+    download("interior_" + active_model.slice(-17, -4) + ".stl", dloadInterior)
   }  
 
 document.querySelector("#downloadExterior").onclick = function()
 {
   // console.log(dloadExterior)
-  download("exterior.stl", dloadExterior)
+  download("exterior_" + active_model.slice(-17, -4) + ".stl", dloadExterior)
 }  
+
+document.querySelector("#downloadSnapshot").onclick = function()
+{
+  // console.log(dloadExterior)
+  downloadCanvas("path_" + active_model.slice(-17, -4) + ".png");
+}  
+
 
 
 document.querySelector("#context").onchange = function()

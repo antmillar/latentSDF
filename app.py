@@ -39,8 +39,6 @@ Details = namedtuple("Details", ["Floors", "Taper", "FloorRotation", "MaxCoverag
 
 Bounds = namedtuple('Bounds', ['xMin', 'xMax', 'yMin', 'yMax'])
 latent_bounds = Bounds(-1.5, 1.0, -1.0, 1.0)
-img_source  = '/static/img/latent_grid.png'
-img_source_hm  = '/static/img/constraint_heatmap.png'
 
 active_model = ''
 torch_model =  cwd + '/static/models/torch/default.pth'
@@ -103,7 +101,7 @@ def upload_file():
 
 
 
-        return render_template('main.html', latent_bounds = list(latent_bounds), img_source = img_source, img_source_hm = img_source_hm, active_model = active_model, height = height, coverage = coverage, contours = contours, floors = floors, model_details = model_details, annotations = annotations, show_context=show_context)
+        return render_template('main.html', latent_bounds = list(latent_bounds),  active_model = active_model, height = height, coverage = coverage, contours = contours, floors = floors, model_details = model_details, annotations = annotations, show_context=show_context)
         
 
 
@@ -124,8 +122,6 @@ def main():
 
     #on load create latent image 
     if(not latent_loaded):
-
-     
 
         latent_space.updateLatent(latent_bounds, torch_model, latents)
         latent_loaded = True
@@ -272,9 +268,7 @@ def main():
 
 
 
-
-
-    return render_template('main.html', latent_bounds = list(latent_bounds), img_source = img_source, img_source_hm = img_source_hm, active_model = active_model, height = height, points=points, coverage = coverage, contours = contours, floors = floors, model_details = model_details, annotations = annotations, show_context=show_context)
+    return render_template('main.html', latent_bounds = list(latent_bounds), active_model = active_model, height = height, points=points, coverage = coverage, contours = contours, floors = floors, model_details = model_details, annotations = annotations, show_context=show_context)
 
 
 if __name__ == '__main__':
