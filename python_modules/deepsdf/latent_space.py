@@ -1,10 +1,9 @@
 import numpy as np
 import torch
 import matplotlib.pyplot as plt
-from.utils import funcTimer
+from.utils import funcTimer, load_torch_model, get_area_covered, get_site_excess
 import os
 from .architectures import deepSDFCodedShape
-from.utils import funcTimer, get_area_covered, get_site_excess
 import seaborn as sns
 from matplotlib.offsetbox import OffsetImage, AnnotationBbox
 
@@ -55,14 +54,8 @@ def updateLatent(latentBounds,  model_path, latents, site_name = "St Mary Axe", 
     print("validating bounds...")
     check_bounds(latentBounds)
 
-    #should have model globaL?
     print("loading model...")
-    # model_path = os.path.join(dir_model, "8floorplans.pth")
-    # model_path = os.path.join(dir_model, "8floorplans_selflearn.pth")
-
-
-    model = deepSDFCodedShape().to(device)
-    model.load_state_dict(torch.load(model_path, map_location=device))
+    model = load_torch_model(model_path)
 
     interpolate_grid(model, latentBounds, latents, site_name,  coverage_threshold, check_site_boundary)
 

@@ -78,8 +78,8 @@ class deepSDFCodedShape(nn.Module):
 
       self.tanh = nn.Tanh()
 
-      self.latents = nn.Parameter(torch.FloatTensor(8, code_dim))
-      torch.nn.init.xavier_normal(self.latents)
+      # self.latents = nn.Parameter(torch.FloatTensor(4, code_dim))
+      # torch.nn.init.xavier_normal(self.latents)
 
     def forward(self, shape_code, coord, self_learn = False):
 
@@ -90,8 +90,8 @@ class deepSDFCodedShape(nn.Module):
       if(not self_learn):
         shape_code = shape_code.float()
         shape_code = shape_code.repeat(coord.shape[0], 1)
-      else:
-        shape_code = self.latents[shape_code].repeat(coord.shape[0], 1)
+      # else:
+        # shape_code = self.latents[shape_code].repeat(coord.shape[0], 1)
 
 
       input = torch.cat((shape_code, coord), dim = 1)
