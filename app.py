@@ -168,10 +168,10 @@ def main():
                 annotations = np.c_[np.array([i for i in range(1, annotations.shape[0] + 1)]), annotations]
 
                 #update bounds
-                minX = min(val[0] for val in latents)
-                maxX = max(val[0] for val in latents)
-                minY = min(val[1] for val in latents)
-                maxY = max(val[1] for val in latents)
+                minX = round(min(val[0] for val in latents),1)
+                maxX = round(max(val[0] for val in latents),1)
+                minY = round(min(val[1] for val in latents),1)
+                maxY = round(max(val[1] for val in latents),1)
                 
                 latent_bounds = Bounds(minX, maxX, minY, maxY)
                 latent_space.updateLatent(latent_bounds, torch_model, latents)

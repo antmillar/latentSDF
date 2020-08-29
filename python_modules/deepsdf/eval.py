@@ -29,7 +29,7 @@ device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
 res = 50
 ptsSample = np.float_([[x, y] 
-                for y in  np.linspace(-50, 50, res) 
+                for y in  np.linspace(50, -50, res) 
                 for x in np.linspace(-50, 50, res)])
 pts = torch.Tensor(ptsSample).to(device)
 
@@ -79,9 +79,14 @@ def process_slices(model, pts, latent):
     sdf = model.forward(latent, pts)
 
     coverage = get_area_covered(sdf)
+    # x = np.pad(x, pad_width=1, mode='constant', constant_values=0)
 
+    sdf = sdf.view(res, res).detach().cpu().numpy()
 
-    return sdf.view(res, res), coverage
+    #pad the outermost edge of the SDF with positive vals to prevent issues with marching cubes
+    sdf_padded = np.pad(sdf[1:res - 1, 1 : res - 1], pad_width=1, mode='constant', constant_values=1.0)
+
+    return torch.tensor(sdf_padded), coverage
 
 
 def taper_slices(slices, slices_to_taper):

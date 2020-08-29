@@ -49,26 +49,26 @@ def load_torch_model(model_path):
     return model
 
 
-def get_site_excess(sdf, site_name):
+def get_site_excess(sdf, site_name, res):
 
     '''
     Tests whether the sdf stays within the specified site footprint mask
     '''
 
-    temp = sdf.cpu().detach().numpy().reshape(50, 50)
+    temp = sdf.cpu().detach().numpy().reshape(res, res)
 
     if(site_name == "Canary Wharf"):
-        site_footprint = np.array(Image.open('static\img\site_footprint_cw.png').resize((50, 50)).convert('L')) / 255.0
+        site_footprint = np.array(Image.open('static\img\site_footprint_cw.png').resize((res, res)).convert('L')) / 255.0
 
     elif(site_name == "St Mary Axe"):
     
-        site_footprint = np.array(Image.open('static\img\site_footprint_sm.png').resize((50, 50)).convert('L')) / 255.0
+        site_footprint = np.array(Image.open('static\img\site_footprint_sm.png').resize((res, res)).convert('L')) / 255.0
 
     outside_site = site_footprint > 0.1
     within_bldg = temp < 0.1
     out_of_bounds = np.logical_and(within_bldg, outside_site)
 
-    excess = np.sum(out_of_bounds) / (50*50) * 100.0
+    excess = np.sum(out_of_bounds) / (res*res) * 100.0
 
     return excess
 

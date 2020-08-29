@@ -19,33 +19,43 @@ var fn_site = "/static/models/inputs/context_sm.obj"
   const aspect = 1;  // the canvas default
   const clipNear = 0.01;
   const clipFar = 5000;
-  const radius = 500
+  const radius = 400
   camera = new THREE.PerspectiveCamera(fov, aspect, clipNear, clipFar);
-  camera.position.set(radius * 1.1 * Math.cos( Math.PI/4) , radius * 0.5, radius * 0.5);
+
+  var angle = 1.25 * Math.PI / 4.0 ;
+  // var angle = -1.25 * Math.PI / 4.0 ;
+
+  camera.position.set(radius * Math.cos(angle) , radius * 0.6, radius * Math.sin(angle) );
 
   //mouse controls
   const controls = new OrbitControls(camera, canvas);
   controls.target.set(0, 50, 0);
   controls.update();
 
-  var ambient = new THREE.AmbientLight( 0xbbbbbb );
+  var ambient = new THREE.AmbientLight( 0xbbbbbb, 0.5 );
   scene.add( ambient );
+
   scene.fog = new THREE.Fog( 0xBBBBBB, 500, 2000  );
 
-  var dirLight = new THREE.DirectionalLight( 0xffffff, 1);
-  dirLight.position.set( -200, 200, 200 );
+  var dirLight = new THREE.DirectionalLight( 0xffffff, 0.5);
+  dirLight.position.set( -100, 200, 100 );
   dirLight.castShadow = true;
   // dirLight.shadow.mapSize = new THREE.Vector2(512, 512);
   scene.add(dirLight);
 
+  var dirLight2 = new THREE.DirectionalLight( 0xffffff, 0.5);
+  dirLight2.position.set( 100, 200, -100 );
+  dirLight2.castShadow = true;
+  // dirLight.shadow.mapSize = new THREE.Vector2(512, 512);
+  scene.add(dirLight2);
+
   renderer = new THREE.WebGLRenderer({preserveDrawingBuffer: true , antialias:true, canvas : canvas});
   let width = canvas_width;
   let height = canvas_height;
-  renderer.setPixelRatio( window.devicePixelRatio );
+  // renderer.setPixelRatio( window.devicePixelRatio );
   renderer.setSize(width, height);
   renderer.shadowMap.enabled = true;
   renderer.shadowMap.type = THREE.PCFSoftShadowMap;
-
 
   if(active_model == "") 
   {
@@ -54,7 +64,7 @@ var fn_site = "/static/models/inputs/context_sm.obj"
   else
   {
 
-  loadCore();
+  // loadCore();
   
   // LOAD THE BUILDING, FLOORS and CONTOURS
   let loader = new OBJLoader2();
@@ -143,7 +153,9 @@ function toggleContext(toggle)
       box.getCenter( center );
 
       // model_context.position.sub( center ); // center the model
+      // model_context.geometry.scale(0.8,0.8,0.8);
       model_context.rotation.x = Math.PI/2;   // rotate the model
+      model_context.scale
 
       //hard coded offsets for the specific context used
       // model_context.translateY(100)
@@ -482,7 +494,7 @@ document.querySelector("#downloadExterior").onclick = function()
 document.querySelector("#downloadSnapshot").onclick = function()
 {
   // console.log(dloadExterior)
-  downloadCanvas("path_" + active_model.slice(-17, -4) + ".png");
+  downloadCanvas("snap_" + active_model.slice(-17, -4) + ".png");
 }  
 
 

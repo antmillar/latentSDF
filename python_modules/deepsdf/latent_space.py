@@ -212,11 +212,11 @@ def find_seeds(latentBounds, xAx, yAx, latents):
         closestLatents.append(closest)
     return closestLatents
 
-def process_latent(model, latent, site_name , invert = False,  res = 50):
+def process_latent(model, latent, site_name = "St Mary Axe", invert = False,  res = 50):
 
     ptsSample = np.float_([[x, y] 
                 for x in np.linspace(-50, 50, res) 
-                for y in np.linspace(50, -50, res)])
+                for y in np.linspace(-50, 50, res)])
     pts = torch.Tensor(ptsSample).to(device)
 
     #generate sdf from latent vector using model
@@ -224,7 +224,8 @@ def process_latent(model, latent, site_name , invert = False,  res = 50):
     # sdf = model.forward(latent, pts)
 
     coverage = get_area_covered(sdf)
-    site_excess = get_site_excess(sdf, site_name)
+
+    site_excess = get_site_excess(sdf, site_name, res)
     pixels = sdf.view(res, res)
     # print(site_excess)
 
@@ -243,8 +244,8 @@ def prepare_analysis(model_path, latents):
     Generates images for a set of latent vectors
     '''
 
-    model = deepSDFCodedShape().to(device)
-    model.load_state_dict(torch.load(model_path, map_location=device))
+    model = load_torch_model(model_path)
+
 
     images = [process_latent(model, torch.tensor(latent), res = 100)[0] for  latent in latents]
 
