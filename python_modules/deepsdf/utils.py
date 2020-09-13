@@ -22,19 +22,7 @@ def funcTimer(func):
 
     return timedFunc
 
-
-def get_area_covered(sdf):
-
-    '''Determines proportion of sdf inside / total'''
-
-    temp = sdf.cpu().detach().numpy()
-    inside = temp < 0
-    insideCount = np.sum(inside)
-    ptCount = sdf.shape[0]
-
-    coverage = (insideCount / ptCount).item()
-    return coverage
-
+#pytorch
 
 def load_torch_model(model_path):
 
@@ -49,6 +37,23 @@ def load_torch_model(model_path):
     model.load_state_dict(new_params)
 
     return model
+
+
+#constraints
+
+def get_area_covered(sdf):
+
+    '''Determines proportion of sdf inside / total'''
+
+    temp = sdf.cpu().detach().numpy()
+    inside = temp < 0
+    insideCount = np.sum(inside)
+    ptCount = sdf.shape[0]
+
+    coverage = (insideCount / ptCount).item()
+    return coverage
+
+
 
 
 def get_site_excess(sdf, site_name, res):
@@ -74,6 +79,7 @@ def get_site_excess(sdf, site_name, res):
 
     return excess
 
+#geometry
 
 def create_rotation_matrix(degrees):
   '''

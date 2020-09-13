@@ -44,7 +44,7 @@ def generate_slices(model, slice_vectors, rotation):
     endLayer = torch.ones(res, res)
 
     #add closing slice to first layer for marching cubes later
-    # slices.append(endLayer)
+    slices.append(endLayer)
 
     for vector in slice_vectors[:sliceCount]:
 
@@ -111,20 +111,19 @@ def generateModel(slice_vectors, height, taper, rotation, model_path):
     endLayer = torch.ones(res, res)
     start_rotation = 0
    
-    
     #update slices with rotation, and calculate coverages
     print("generating SDFs")
     slices, coverages = generate_slices(model, slice_vectors, rotation)
 
-
     print("converting 2D slices to 3D SDF...")
     gridDistanceWidth = 4.0 #because the max inside and outside is 1 and -1, 4 = 1 + 1 - - 1 - - 1
     cellSize = gridDistanceWidth / res
-    #maybe ignore first layer
+
+    #updates the values in a 3D SDF after stacking multiple 2D SDFs, not a perfect approach but certainly improvement over nothing.
     for myIndex, mySlice in enumerate(slices):
       for otherIndex, otherSlice in enumerate(slices):
 
-        #rescaling because performing sqrt later on small numbers otherwise .. underflow
+        #rescaling because performing sqrt later on small numbers otherwise underflow
         rescale = 1000
         baseSlice = mySlice * rescale
 
@@ -149,7 +148,6 @@ def generateModel(slice_vectors, height, taper, rotation, model_path):
         diffsToKeep /= rescale
 
 
-
         diffsToKeep2 = np.multiply(mask2,  distancesViaNewLayer)
         diffsToKeep2 = np.multiply(diffsToKeep2, outsideMask)
         diffsToKeep2 = np.sqrt(diffsToKeep2)
@@ -160,7 +158,6 @@ def generateModel(slice_vectors, height, taper, rotation, model_path):
 
         finalmask = diffsmask == diffsmask2
 
-
         mySlice = diffsToKeep + diffsToKeep2 + np.multiply(finalmask, mySlice)
         # print(np.unique(mySlice))
 
@@ -168,13 +165,11 @@ def generateModel(slice_vectors, height, taper, rotation, model_path):
     slices_to_taper = int(slice_count * taper / 100.0) * (slice_count // height)
     slices = taper_slices(slices, slices_to_taper)
 
-
     #add closing slice to last layer
-    # slices.append(endLayer)
+    slices.append(endLayer)
 
     #stack slices into np array
     stacked = np.stack(slices)
-
 
     #generate the isocontours
     contours = []
