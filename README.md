@@ -1,9 +1,9 @@
 
 # TRAINING TEMPLATE
 
-The Model_Trainer.ipynb file in the root directory provides a template for training the deepsdf model on floor plan masks, it's best to run this in google colab.
+The Model_Trainer.ipynb file in the root directory provides a template for training the deepsdf model
 
-
+It's best to run this in google colab with GPU activated 
 
 
 # APPLICATION
@@ -30,18 +30,20 @@ Python and Conda must be installed in order to run the application. The easiest 
 From the anaconda prompt run:
 
 #gets the code#
-git clone https://github.com/antmillar/latentSDF.git
 
-cd latentSDF
+	git clone https://github.com/antmillar/latentSDF.git
+
+	cd latentSDF
 
 #creates a conda environment and installs all the required libraries#
-conda env create -f latentsdf.yml 
 
-conda activate latentsdf
+	conda env create -f latentsdf.yml 
+
+	conda activate latentsdf
 
 ##RUNNING##
 
-python app.py
+	python app.py
 
 once the app is running you should see the following:
 
