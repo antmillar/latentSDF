@@ -1,18 +1,13 @@
-------------------------------------------------------------------------------------------------------------
 
 # TRAINING TEMPLATE
 
-------------------------------------------------------------------------------------------------------------
+The Model_Trainer.ipynb file in the root directory provides a template for training the deepsdf model on floor plan masks, it's best to run this in google colab.
 
 
 
-
-
-------------------------------------------------------------------------------------------------------------
 
 # APPLICATION
 
-------------------------------------------------------------------------------------------------------------
 
 Two options are provided to run the application
 
@@ -22,11 +17,10 @@ Two options are provided to run the application
 
 
 
-------------------------------------------------------------------------------------------------------------
 
 # Instructions for Local Installation
 
-------------------------------------------------------------------------------------------------------------
+
 
 Python and Conda must be installed in order to run the application. The easiest way to get these is to install https://docs.conda.io/en/latest/miniconda.html
 
