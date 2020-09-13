@@ -29,13 +29,13 @@ Python and Conda must be installed in order to run the application. The easiest 
 
 From the anaconda prompt run:
 
-#gets the code#
+gets the code:
 
 	git clone https://github.com/antmillar/latentSDF.git
 
 	cd latentSDF
 
-#creates a conda environment and installs all the required libraries#
+creates a conda environment and installs all the required libraries:
 
 	conda env create -f latentsdf.yml 
 
@@ -45,7 +45,7 @@ From the anaconda prompt run:
 
 	python app.py
 
-once the app is running you should see the following:
+Once the app is running you should see the following:
 
 
 	 * Serving Flask app "app" (lazy loading)
@@ -55,7 +55,7 @@ once the app is running you should see the following:
 	 * Debug mode: off
 	 * Running on http://127.0.0.1:5000/ (Press CTRL+C to quit)
 
-open this address in a browser to load the application. The application is optimised to firefox, but should work in other browsers though the layout might not be optimal.
+Open this address in a browser to load the application. The application is optimised to firefox, but should work in other browsers though the layout might not be optimal.
 
 
 Notes:
