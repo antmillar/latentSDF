@@ -2,9 +2,6 @@ import numpy as np
 import os
 import torch
 from torch.utils.data import DataLoader
-from .architectures import deepSDFCodedShape
-from.utils import funcTimer, get_area_covered,load_torch_model
-
 from pathlib import Path
 import numpy
 from PIL import Image
@@ -14,19 +11,22 @@ import time
 from skimage import measure
 from collections import namedtuple
 import random
+
+#internal imports
+from .architectures import deepSDFCodedShape
+from .utils import *
 from .primitives import Box
 
-#static
+#dirs
 cwd = os.getcwd()
 dir_image = cwd + '/static/img'
 dir_data = cwd + '/static/models'
 dir_output = cwd + '/static/models/outputs'
 model_path = cwd + '/static/models/torch'
 
-
+#static
 batch_size = 1
 device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
-
 res = 50
 ptsSample = np.float_([[x, y] 
                 for y in  np.linspace(50, -50, res) 
@@ -34,17 +34,6 @@ ptsSample = np.float_([[x, y]
 pts = torch.Tensor(ptsSample).to(device)
 
 
-
-def create_rotation_matrix(degrees):
-  '''
-  Generates a rotation matrix for given angle
-  '''
-
-  theta = np.radians(degrees)
-  cos, sin = np.cos(theta), np.sin(theta)
-  rotation_matrix = torch.tensor(np.array(((cos, -sin), (sin, cos)))).float() #clockwise
-  
-  return rotation_matrix
 
 def generate_slices(model, slice_vectors, rotation):
 
@@ -55,7 +44,7 @@ def generate_slices(model, slice_vectors, rotation):
     endLayer = torch.ones(res, res)
 
     #add closing slice to first layer for marching cubes later
-    slices.append(endLayer)
+    # slices.append(endLayer)
 
     for vector in slice_vectors[:sliceCount]:
 
@@ -181,7 +170,7 @@ def generateModel(slice_vectors, height, taper, rotation, model_path):
 
 
     #add closing slice to last layer
-    slices.append(endLayer)
+    # slices.append(endLayer)
 
     #stack slices into np array
     stacked = np.stack(slices)

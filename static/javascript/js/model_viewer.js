@@ -64,7 +64,7 @@ var fn_site = "/static/models/inputs/context_sm.obj"
   else
   {
 
-  // loadCore();
+  loadCore();
   
   // LOAD THE BUILDING, FLOORS and CONTOURS
   let loader = new OBJLoader2();

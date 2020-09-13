@@ -59,6 +59,7 @@ def updateLatent(latentBounds,  model_path, latents, site_name = "St Mary Axe", 
 
     interpolate_grid(model, latentBounds, latents, site_name,  coverage_threshold, check_site_boundary)
 
+
 def check_bounds(latentBounds):
     
     '''
@@ -70,6 +71,7 @@ def check_bounds(latentBounds):
 
     print("bounds valid")
     
+
 @funcTimer
 def interpolate_grid(model, latentBounds, latents : np.array, site_name, coverage_threshold, check_site_boundary, num = 10):
     """Generates an image of the latent space containing seed and interpolated designs
@@ -85,7 +87,6 @@ def interpolate_grid(model, latentBounds, latents : np.array, site_name, coverag
     
     print("generating latent grid...")
     fig, axs = plt.subplots(num, num, figsize=(16, 16))
-    # fig.subplots_adjust(wspace=0, hspace=0)
     fig.tight_layout()
     
 
@@ -96,6 +97,7 @@ def interpolate_grid(model, latentBounds, latents : np.array, site_name, coverag
     #find the closest grid item to seed design
     closestLatents =  find_seeds(latentBounds, xAx, yAx, latents)
 
+    #loop over each latent vector
     for index, i in enumerate(xAx):
         for jindex, j in enumerate(yAx) :
         
@@ -112,9 +114,6 @@ def interpolate_grid(model, latentBounds, latents : np.array, site_name, coverag
                 #starts top left
                 axs[num -1 - jindex, index].imshow(im, cmap = "copper")
 
-                # # #if original show as copper, interpolated show as pink
-                # if([i, j] in latents):
-                #     axs[num - 1 - jindex, index].imshow(im, cmap = "copper")
 
             else:
                 # im = 255 - im #inverting
@@ -130,10 +129,9 @@ def interpolate_grid(model, latentBounds, latents : np.array, site_name, coverag
                 axs[num -1- jindex, index].imshow(im4, vmin=0, vmax=255, cmap="RdBu")
 
             axs[num - 1 - jindex, index].axis("off")
-            # axs[num - 1 - jindex, index].set_aspect('equal')
     
 
-    #####
+    #handles heat maps
     grid_is_transparent = False
 
     if(coverage_threshold != False or check_site_boundary != False):
@@ -145,7 +143,8 @@ def interpolate_grid(model, latentBounds, latents : np.array, site_name, coverag
 
 def create_heatmap(coverage_threshold):
 
-    #by default create heatmap for site extents, where 1% is the threshold, otherwise coverage threshold
+    '''By default creates heatmap for site extents, where 1% is the threshold, otherwise for coverage threshold'''
+
     values = site_grid.grid
     threshold = 1
     start_color = 150
@@ -172,7 +171,6 @@ def create_heatmap(coverage_threshold):
     ax2.axis('off')
 
     fig2.savefig(os.path.join(dir_image, 'constraint_heatmap.png'), pad_inches=0, bbox_inches = 'tight')
-    ######
 
 
 def find_seeds(latentBounds, xAx, yAx, latents):

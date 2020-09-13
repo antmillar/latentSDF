@@ -25,7 +25,8 @@ def funcTimer(func):
 
 def get_area_covered(sdf):
 
-    #count the proportion of values that are negative
+    '''Determines proportion of sdf inside / total'''
+
     temp = sdf.cpu().detach().numpy()
     inside = temp < 0
     insideCount = np.sum(inside)
@@ -37,9 +38,10 @@ def get_area_covered(sdf):
 
 def load_torch_model(model_path):
 
+    '''Loads the torch model, removes the latents field as not needed for inference'''
+
     model = deepSDFCodedShape().to(device)
 
-    #update params to remove the latent vector, not needed for inference
     updated_params = torch.load(model_path, map_location=device)
     updated_params.pop('latents', None)
     new_params = model.state_dict()
@@ -52,7 +54,7 @@ def load_torch_model(model_path):
 def get_site_excess(sdf, site_name, res):
 
     '''
-    Tests whether the sdf stays within the specified site footprint mask
+    Determines whether the sdf stays within the specified site footprint mask
     '''
 
     temp = sdf.cpu().detach().numpy().reshape(res, res)
@@ -72,3 +74,14 @@ def get_site_excess(sdf, site_name, res):
 
     return excess
 
+
+def create_rotation_matrix(degrees):
+  '''
+  Generates a rotation matrix for given angle
+  '''
+
+  theta = np.radians(degrees)
+  cos, sin = np.cos(theta), np.sin(theta)
+  rotation_matrix = torch.tensor(np.array(((cos, -sin), (sin, cos)))).float() #clockwise
+  
+  return rotation_matrix

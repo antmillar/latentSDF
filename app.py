@@ -15,28 +15,20 @@ import zipfile
 # #local module imports
 import python_modules.deepsdf.eval as eval
 import python_modules.deepsdf.latent_space as latent_space
-# import python_modules.preprocess.utils as preprocess_utils
-# import python_modules.postprocess.reconstruction as reconstruction
-
-#show the status text top right
-global statusText
-statusText = "view mode"
 
 app = Flask(__name__ , static_url_path = '/static' )
 
- #prevent file caching
+#prevent file caching
 app.config['SEND_FILE_MAX_AGE_DEFAULT'] = 0
 
 #relative paths
 cwd = os.getcwd()
-output_path = cwd + '/static/img/output'
 model_path = cwd + '/static/models/torch/'
 input_path = cwd + '/static/models/inputs'
 output_path = cwd + '/static/models/outputs'
-mesh_path = cwd + '/static/models/meshes'
 
+#globals/initial values
 Details = namedtuple("Details", ["Floors", "Taper", "FloorRotation", "MaxCoverage", "MinCoverage"])
-
 Bounds = namedtuple('Bounds', ['xMin', 'xMax', 'yMin', 'yMax'])
 latent_bounds = Bounds(-1.5, 1.0, -1.0, 1.0)
 
@@ -54,20 +46,9 @@ latents = np.empty([0])
 annotations = np.empty([0])
 distances = np.empty([0])
 points = ""
-
 titles = np.empty([0])
 
-##TODO
-#tidy up code in python 
-#think about global variables
-#tidy up JS
-#how to convert to ship app?
-#create landing page
-#3d latent space
-# bug after the model is loaded and then restarted
-#reset distance explorer at beginning
-
-
+#ROUTES--------------------
 
 #base route
 @app.route('/')
@@ -90,31 +71,13 @@ def analysis():
 
     return render_template('analysis.html', latents = latents, annotations = annotations, titles = titles ,distances=distances)
 
-#model route
-@app.route('/modelView')
-def modelView():
-    return render_template('modelView.html')
-
 #upload torch model route
 @app.route('/uploader', methods = ['GET', 'POST'])
 def upload_file():
 
-
-
         return render_template('main.html', latent_bounds = list(latent_bounds),  active_model = active_model, height = height, coverage = coverage, contours = contours, floors = floors, model_details = model_details, annotations = annotations, show_context=show_context)
         
-
-
-@app.route('/downloader', methods = ['GET'])
-def download_file():
-
-    print(f"downloading {cwd + active_model}")
-
-    #open3d seems to always create an MTL file, can't figure out how to remove it. But the model should load fine without the MTL.
-    print(active_model)
-    return send_from_directory(directory=output_path, filename=active_model[-23:] , as_attachment=True) #HACKAKCKAKCAKCKAKC
-
-#base route
+#main route
 @app.route('/main',  methods = ["GET", "POST"])
 def main():
 
@@ -128,7 +91,7 @@ def main():
 
     if request.method == 'POST': 
 
-        #if file uploaded
+        #HANDLES FILE UPLOADING
         if(request.files):
             print("uploading file...")
 
@@ -164,7 +127,7 @@ def main():
                 sortedOrder = np.array(latents)[:,0].argsort()
                 annotations[0:,:] = annotations[0:,:][sortedOrder]
 
-                #add 1-indexed column
+                #add 1-indexed column for jinja
                 annotations = np.c_[np.array([i for i in range(1, annotations.shape[0] + 1)]), annotations]
 
                 #update bounds
@@ -172,15 +135,16 @@ def main():
                 maxX = round(max(val[0] for val in latents),1)
                 minY = round(min(val[1] for val in latents),1)
                 maxY = round(max(val[1] for val in latents),1)
-                
                 latent_bounds = Bounds(minX, maxX, minY, maxY)
+
+                #update latent space
                 latent_space.updateLatent(latent_bounds, torch_model, latents)
 
             else:
 
                 print("Invalid File Type")
  
-        #generate 3d model
+        #HANDLES 3D MODEL GENERATION
         if(request.form.get("generateSlices")):
 
             #delete old models
@@ -190,7 +154,7 @@ def main():
                 os.remove(f)
                 print(f"deleted - {f}")
 
-
+            #get data from POST
             global height, show_context, points
             height = int(request.form.get("modelHeight"))
 
@@ -219,22 +183,22 @@ def main():
 
             torch.cuda.empty_cache()
 
+            #generate the 3D Model
             global contours, floors, model_details
             model_name, contours, floors, model_details =  eval.generateModel(coords, height, taper, rotation, torch_model)
 
             global active_model
             active_model = '/static/models/outputs/' + model_name
 
-        #update the latent space
+        #HANDLES UPDATING LATENT SPACE
         if(request.form.get("xMin")):
 
             latent_bounds = Bounds(float(request.form.get("xMin")), float(request.form.get("xMax")), float(request.form.get("yMin")), float(request.form.get("yMax")))
             latent_space.updateLatent(latent_bounds, torch_model, latents)
 
-        #update the latent space
+        #HANDLES UPDATING COVERAGE
         if(request.form.get("scoverage") == ""):
 
-            print("OL", request.form.get("ssite"))
             if(request.form.get("ssite")):
 
                 print("building site extents heatmap...")
@@ -250,8 +214,6 @@ def main():
                 coverage = ""
                 latent_space.updateLatent(latent_bounds, torch_model, latents, coverage_threshold = False) 
         
-
-
         if(request.form.get("scoverage")):
 
             print("building coverage heatmap...")
