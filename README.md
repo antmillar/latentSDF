@@ -8,16 +8,6 @@ It's best to run this in google colab with GPU activated
 
 # APPLICATION
 
-
-Two options are provided to run the application
-
-1) The app has been deployed online at ...... . It should be noted this version only has preloaded models and the user cannot upload their own models for security reasons
-
-2) The app can be installed locally for full functionality.
-
-
-
-
 # Instructions for Local Installation
 
 
