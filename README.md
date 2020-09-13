@@ -58,11 +58,13 @@ Once the app is running you should see the following:
 Open this address in a browser to load the application. The application is optimised to firefox, but should work in other browsers though the layout might not be optimal.
 
 
+
+
 Notes:
 
 conda may need to be manually added to your PATH if a conda not a recognized command error is returned.
 
-
+Pre-prepared model zips can be found in /static/models/torch. The upload model button should target this directory by default.
 
 
 

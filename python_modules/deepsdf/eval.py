@@ -35,6 +35,103 @@ pts = torch.Tensor(ptsSample).to(device)
 
 
 
+@funcTimer
+def generate_model(slice_vectors, height, taper, rotation, model_path):
+
+    print("generating 3d model...")
+    numSlices = height
+    slice_count = len(slice_vectors)
+    slice_height = 1 / (slice_count // height) 
+ 
+    print("loading model...")
+    model = load_torch_model(model_path)
+
+    slices = []
+    
+    coverages = []
+    cores = []
+    endLayer = torch.ones(res, res)
+    start_rotation = 0
+   
+    #update slices with rotation, and calculate coverages
+    print("generating SDFs")
+    slices, coverages = generate_slices(model, slice_vectors, rotation)
+
+    # print("converting 2D slices to 3D SDF...")
+    # convert_2d_to_3d_sdf(slices)
+
+    print("tapering slices...")
+    slices_to_taper = int(slice_count * taper / 100.0) * (slice_count // height)
+    slices = taper_slices(slices, slices_to_taper)
+
+    #add closing slice to last layer
+    slices.append(endLayer)
+
+    #stack slices into np array
+    stacked = np.stack(slices)
+
+    print("generating floors...")
+
+    floors = []
+    floor_labels = []
+    floors, floor_labels = generate_floors(slices, slices_to_taper, height)
+
+    print("generating contours...")
+    contours = []
+    contours = generate_contours(stacked, slices, height)
+
+
+    print("generating cores...")
+    cores = generate_cores(floor_labels, slices, slices_to_taper)
+
+
+    #filter out empty contours/floors
+    contours = [item for item in contours if item != []]
+    # floors = [item for item in floors if item != []]
+
+    #get the 0 iso surface for outer facade
+    verts, faces = mcubes.marching_cubes(stacked, 0)
+
+    #get the 0 iso surface for core/s
+    stackedCores = np.stack(cores)
+    vertsCore, facesCore = mcubes.marching_cubes(stackedCores, 0)
+
+    #normalize verts to res
+    verts[:,1:] /= (res / 50)
+    vertsCore[:,1:] /= (res / 50)
+
+    #sort vertex heights
+    verts[:,0] -= 1
+    verts[:,0] *= slice_height
+
+    # translate to threejs space
+    verts[:,1] -= 25.0
+    verts[:,2] -= 25.0
+
+    vertsCore[:,1] -= 25.0 #translate to threejs space
+    vertsCore[:,2] -= 25.0
+
+
+    # Export the result
+    timestr = time.strftime("%d%m%y-%H%M%S")
+    fn = "model-" + timestr + ".obj"
+    core_fn = "core_" + fn
+
+    mcubes.export_obj(verts, faces,  os.path.join(dir_output, fn))
+    mcubes.export_obj(vertsCore, facesCore,  os.path.join(dir_output, core_fn))
+
+    # model details for app
+     
+    minCoverage = np.round(min(coverages) * 100.0, 2)
+    maxCoverage = np.round(max(coverages) * 100.0, 2)
+
+    Details = namedtuple("Details", ["Floors", "Taper", "Rotation", "MaxCoverage", "MinCoverage"])
+    model_details = Details(numSlices, taper, rotation, maxCoverage, minCoverage)
+
+    return fn, contours, floors, model_details
+
+
+
 def generate_slices(model, slice_vectors, rotation):
 
     start_rotation = 0
@@ -95,27 +192,105 @@ def taper_slices(slices, slices_to_taper):
   return slices
 
 
-@funcTimer
-def generateModel(slice_vectors, height, taper, rotation, model_path):
 
-    print("generating 3d model...")
-    numSlices = height
-    slice_count = len(slice_vectors)
- 
-    print("loading model...")
-    model = load_torch_model(model_path)
+def generate_floors(slices, slices_to_taper, height):
 
-    slices = []
-    coverages = []
-    cores = []
-    endLayer = torch.ones(res, res)
-    start_rotation = 0
-   
-    #update slices with rotation, and calculate coverages
-    print("generating SDFs")
-    slices, coverages = generate_slices(model, slice_vectors, rotation)
+    '''generate the isocontours for each floor and also label each disjoint contour'''
 
-    print("converting 2D slices to 3D SDF...")
+    #generate the isocontours
+    floors = []
+    floor_labels = []
+    floor_samples = 40
+    level = 0.0
+    floor_height = 3
+    floor_every = (len(slices) // height) * floor_height
+
+    #ADDING FLOORS
+    ##funny indexing due to extra ends added to close form
+    for idx, s in enumerate(slices[1:-slices_to_taper - 1:floor_every]):
+        
+        # level = -idx * taper/len(slices)
+
+        #after first point and checking previous layer not empty
+        if(idx > 0 and len(floors[idx - 1]) > 0):
+            start_point = floors[idx - 1][0][0][:2] #previous layer first coordinate
+            # slice_contours = extractContours(s, samples, level)
+            floor_contours, labels = extractContours(s, floor_samples, level, start_point)
+
+        else:
+            floor_contours, labels = extractContours(s, floor_samples, level)
+
+        a = []
+        for floor in floor_contours:
+
+
+            test = np.c_[floor, idx * floor_height * np.ones((floor.shape[0], 1))]
+            # test[:,2] += 1 #subtract one for the extra base plane
+            # test[:,2]*= floor_height #need to scale up the height
+            test[:,0] -= 25.0
+            test[:,1] -= 25.0
+            test = test.tolist()
+    
+            a.append(test)# add extra column for height
+
+        floors.append(a)
+        floor_labels.append(labels)
+
+    return floors, floor_labels
+
+def generate_contours(stacked, slices, height):
+
+    '''generate vertical contours for visual output in threejs'''
+
+    #create vertical contours
+    ySlices = []
+    for i in range(stacked.shape[1]):
+      ySlices.append(stacked[:,i,:])
+
+    samples = 400
+    contour_every = 3
+    level = 0.0
+    slice_height = 1 / (len(slices) // height) 
+    contours = []
+
+
+    for idx, s in enumerate(ySlices[::contour_every]):
+        
+        #after first point and checking previous layer not empty
+        if(idx > 0 and len(contours[idx - 1]) > 0):
+            start_point = contours[idx - 1][0][0][:2] #previous layer first coordinate
+            # slice_contours = extractContours(s, samples, level)
+            slice_contours, _ = extractContours(s, samples, level, start_point)
+
+        else:
+            slice_contours, _ = extractContours(s, samples, level)
+
+        a = []
+        for contour in slice_contours:
+
+            #swap this column as we are slicing vertically now
+              
+              test = np.c_[contour, 1 * idx * contour_every * np.ones((contour.shape[0], 1))]
+
+              test[:,[0, 2]] = test[:,[2, 0]]
+              test[:,2] -= 1 #move down a floor
+
+              test[:,2]*= slice_height #need to scale up the height
+              #centering
+              test[:,0] -= 25.0
+              test[:,1] -= 25.0 
+              test = test.tolist()
+              a.append(test)
+
+        contours.append(a)
+
+    return contours
+
+##not included in model generation as algorithm still needs work
+def convert_2d_to_3d_sdf(slices):
+
+    '''fixes distance values from stacking 2D sdfs to create a 3D sdf'''
+
     gridDistanceWidth = 4.0 #because the max inside and outside is 1 and -1, 4 = 1 + 1 - - 1 - - 1
     cellSize = gridDistanceWidth / res
 
@@ -161,135 +336,44 @@ def generateModel(slice_vectors, height, taper, rotation, model_path):
         mySlice = diffsToKeep + diffsToKeep2 + np.multiply(finalmask, mySlice)
         # print(np.unique(mySlice))
 
-    print("tapering slices...")
-    slices_to_taper = int(slice_count * taper / 100.0) * (slice_count // height)
-    slices = taper_slices(slices, slices_to_taper)
+def generate_cores(floor_labels, slices, slices_to_taper):
 
-    #add closing slice to last layer
-    slices.append(endLayer)
+    '''generate single or multiple cores, depending on the sdf with max disjoint contours'''
 
-    #stack slices into np array
-    stacked = np.stack(slices)
-
-    #generate the isocontours
-    contours = []
-    floors = []
-    floor_labels = []
-    samples = 400
-    floor_samples = 40
-    contour_every = 3
-    floor_every = 1
-    level = 0.0
-
-    floor_height = 3
-    floor_every = (slice_count // height) * floor_height
-    slice_height = 1 / (slice_count // height) 
-
-    print("generating floors...")
-  #ADDING FLOORS
-    ##funny indexing due to extra ends added to close form
-    for idx, s in enumerate(slices[1:-slices_to_taper - 1:floor_every]):
-        
-        # level = -idx * taper/len(slices)
-
-        #after first point and checking previous layer not empty
-        if(idx > 0 and len(floors[idx - 1]) > 0):
-            start_point = floors[idx - 1][0][0][:2] #previous layer first coordinate
-            # slice_contours = extractContours(s, samples, level)
-            floor_contours, labels = extractContours(s, floor_samples, level, start_point)
-
-        else:
-            floor_contours, labels = extractContours(s, floor_samples, level)
-
-        a = []
-        for floor in floor_contours:
-
-
-            test = np.c_[floor, idx * floor_height * np.ones((floor.shape[0], 1))]
-            # test[:,2] += 1 #subtract one for the extra base plane
-            # test[:,2]*= floor_height #need to scale up the height
-            test[:,0] -= 25.0
-            test[:,1] -= 25.0
-            test = test.tolist()
-    
-            a.append(test)# add extra column for height
-
-        floors.append(a)
-        floor_labels.append(labels)
-
-
-    print("generating contours...")
-    #create vertical contours
-    ySlices = []
-    for i in range(stacked.shape[1]):
-      ySlices.append(stacked[:,i,:])
-
-
-    for idx, s in enumerate(ySlices[::contour_every]):
-        
-        #after first point and checking previous layer not empty
-        if(idx > 0 and len(contours[idx - 1]) > 0):
-            start_point = contours[idx - 1][0][0][:2] #previous layer first coordinate
-            # slice_contours = extractContours(s, samples, level)
-            slice_contours, _ = extractContours(s, samples, level, start_point)
-
-        else:
-            slice_contours, _ = extractContours(s, samples, level)
-
-        a = []
-        for contour in slice_contours:
-
-            #swap this column as we are slicing vertically now
-              
-              test = np.c_[contour, 1 * idx * contour_every * np.ones((contour.shape[0], 1))]
-
-              test[:,[0, 2]] = test[:,[2, 0]]
-              test[:,2] -= 1 #move down a floor
-
-              test[:,2]*= slice_height #need to scale up the height
-              #centering
-              test[:,0] -= 25.0
-              test[:,1] -= 25.0 
-              test = test.tolist()
-              a.append(test)
-
-        contours.append(a)
-
-
+    #should split out the functions within functions perhaps
+  
     lblCounts = [len(np.unique(lbl)) for lbl in floor_labels]
 
     maxlbls  = max(lblCounts)
 
+    #get floors with max number of contours only
     lvlstocheck = [i for i, x in enumerate(lblCounts) if x == maxlbls]
 
-
-    def most_frequent_label(List): 
-        labels = set(List)
+    def most_frequent_label(ls): 
+        labels = set(ls)
         labels.remove(0) #don't want to include outside space
         from collections import Counter
         # print(Counter(List))
-        return max(labels, key = List.count) 
+        return max(labels, key = ls.count) 
       
-    #if maxlbls level, find most frequent element and how many there are
-
     #get most frequent contour label
     most_freq = [most_frequent_label(floor_labels[level].flatten().tolist()) for level in lvlstocheck]
-    print(most_freq)
+    # print(most_freq)
 
     #get how many of these there are
     occurences = [np.sum(floor_labels[level] == a) for level, a in zip(lvlstocheck, most_freq)]
-    print(occurences)
+    # print(occurences)
 
     #find the level with the smallest biggest contour
     levelwithsmallestbiggestcontour = lvlstocheck[np.argmin(occurences)]
-    print(levelwithsmallestbiggestcontour)
+    # print(levelwithsmallestbiggestcontour)
 
     #mask using this label and get value of lowest element in contour
     mask = floor_labels[levelwithsmallestbiggestcontour] == most_freq[lvlstocheck.index(levelwithsmallestbiggestcontour)]
    
     #get just the negative values
     vals = np.multiply(slices[levelwithsmallestbiggestcontour + 1].detach().numpy(), mask)
-    print(np.min(vals)) 
+    # print(np.min(vals)) 
     
     vals = vals.transpose()
 
@@ -309,8 +393,9 @@ def generateModel(slice_vectors, height, taper, rotation, model_path):
       return positives
 
 
-
     def find_core_center(vals):
+
+      '''finds the core that minimise the number of exterior points'''
 
       #get the negative values
       potentialVals = list(np.unique(vals))
@@ -322,7 +407,7 @@ def generateModel(slice_vectors, height, taper, rotation, model_path):
       valsChosen = random.sample(potentialVals, num_samples)
       valsChosen.append(np.min(vals))
 
-      print("random selection" , valsChosen)
+      # print("random selection" , valsChosen)
       pos = []
 
       for choice in valsChosen:
@@ -334,19 +419,18 @@ def generateModel(slice_vectors, height, taper, rotation, model_path):
 
 
       minima = np.where(np.array(pos) == min(pos))[0]
-      print("minima : ", minima)
+      # print("minima : ", minima)
 
       best_val = min([valsChosen[idx] for idx in minima])
-      print("best val", best_val)
-
+      # print("best val", best_val)
 
       #find in index of lowest element in contour
 
       c = np.where(vals == np.min(vals))
-      print("core center using min sdf value : ", np.array([c[1][0], c[0][0]]))
+      # print("core center using min sdf value : ", np.array([c[1][0], c[0][0]]))
 
       c = np.where(vals == best_val)
-      print("core center after optimising with random search : ", np.array([c[1][0], c[0][0]]))
+      # print("core center after optimising with random search : ", np.array([c[1][0], c[0][0]]))
 
       core_center = np.array([c[1][0], c[0][0]])
       return core_center
@@ -360,12 +444,13 @@ def generateModel(slice_vectors, height, taper, rotation, model_path):
     # get number of contours in this floor
     level_contours = np.unique(floor_labels[levelwithsmallestbiggestcontour])
 
+    #adds a core for each contour in the floor with the most contours
     for i in range(1, len(level_contours) ):
 
       mask = floor_labels[levelwithsmallestbiggestcontour] == i
 
       vals = np.multiply(slices[levelwithsmallestbiggestcontour + 1].detach().numpy(), mask)
-      print(np.min(vals)) 
+      # print(np.min(vals)) 
       
       vals = vals.transpose()
 
@@ -373,69 +458,20 @@ def generateModel(slice_vectors, height, taper, rotation, model_path):
 
       square = Box(core_diameter, core_diameter, core_center)
 
-      cores  = [square.field.reshape(res, res) for i in range(numSlices - slices_to_taper)]
+      cores  = [square.field.reshape(res, res) for i in range(len(slices) - slices_to_taper - 1)]
 
 
       core_centers.append(cores)
 
-    
-    intersection = np.minimum.reduce([core for core in core_centers])
-    cores = intersection
+    #merge the core sdfs into one
+    union = np.minimum.reduce([core for core in core_centers])
 
+    return union 
 
-    #filter out empty contours/floors
-
-    # floors = [item for item in floors if item != []]
-    contours = [item for item in contours if item != []]
-
-    #get the 0 iso surface for outer facade
-    verts, faces = mcubes.marching_cubes(stacked, 0)
-
-    #get iso surface for inner core/s
-    stackedCores = np.stack(cores)
-    vertsCore, facesCore = mcubes.marching_cubes(stackedCores, 0)
-
-    #normalize verts to 50
-    verts[:,1:] /= (res / 50)
-    vertsCore[:,1:] /= (res / 50)
-
-    # print(verts.shape)
-    verts[:,0] -= 1
-    verts[:,0] *= slice_height
-
-    # translate to threejs space
-    verts[:,1] -= 25.0
-    verts[:,2] -= 25.0
-
-    vertsCore[:,1] -= 25.0 #translate to threejs space
-    vertsCore[:,2] -= 25.0
-
-
-    new_arr = np.ones((faces.shape[0], faces.shape[1] + 1), dtype=np.int32) * 3
-    new_arr[:,1:] = faces
-
-    # Export the result
-    timestr = time.strftime("%d%m%y-%H%M%S")
-    fn = "model-" + timestr + ".obj"
-    core_fn = "core_" + fn
-
-    mcubes.export_obj(verts, faces,  os.path.join(dir_output, fn))
-    mcubes.export_obj(vertsCore, facesCore,  os.path.join(dir_output, core_fn))
-
-    # model details for app
-     
-    minCoverage = np.round(min(coverages) * 100.0, 2)
-    maxCoverage = np.round(max(coverages) * 100.0, 2)
-
-    Details = namedtuple("Details", ["Floors", "Taper", "Rotation", "MaxCoverage", "MinCoverage"])
-    model_details = Details(numSlices, taper, rotation, maxCoverage, minCoverage)
-
-    return fn, contours, floors, model_details
 
 
 def getIndex(contours, point):
 
-  # print(np.linalg.norm(np.(contours-point), axis = -1))
   idx = np.linalg.norm(np.abs(contours-point), axis = -1).argmin()
 
   return idx

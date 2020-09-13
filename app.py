@@ -185,7 +185,7 @@ def main():
 
             #generate the 3D Model
             global contours, floors, model_details
-            model_name, contours, floors, model_details =  eval.generateModel(coords, height, taper, rotation, torch_model)
+            model_name, contours, floors, model_details =  eval.generate_model(coords, height, taper, rotation, torch_model)
 
             global active_model
             active_model = '/static/models/outputs/' + model_name
