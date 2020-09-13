@@ -1,5 +1,7 @@
 # READ ME
 
+conda create --name <env> --file requirements.txt
+
 This project uses some code from the following github repo
 
 https://github.com/daveredrum/Pointnet2.ScanNet
