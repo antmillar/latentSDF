@@ -17,4 +17,5 @@ EXPOSE 5000
 
 # The code to run when container is started:
 # ENTRYPOINT ["python", "app.py"]
-ENTRYPOINT ["conda", "run", "-n", "latentsdf", "python", "app.py"]
+# ENTRYPOINT ["conda", "run", "-n", "latentsdf", "python", "app.py"]
+CMD ["bash", "-c", "activate latentsdf && python app.py"]
